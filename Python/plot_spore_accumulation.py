@@ -38,6 +38,11 @@ IN = IN.loc[IN['Time_hours'] <= 400]
 #d100
 IN_0B1_100 = IN.loc[(IN['Pop'] == '0B1') & (IN['Day'] == 100)]
 IN_2B1_100 = IN.loc[(IN['Pop'] == '2B1') & (IN['Day'] == 100)]
+
+#IN_0B1_100['Vegetative_percent'] = np.log10(IN_0B1_100['Vegetative_percent'])
+#IN_0B1_100['Vegetative_percent'] = np.log10(IN_0B1_100['Vegetative_percent'])
+
+
 IN_mean_0B1_100 = IN_0B1_100['Vegetative_percent'].groupby(IN_0B1_100['Time_hours']).mean().reset_index()
 IN_mean_2B1_100 = IN_2B1_100['Vegetative_percent'].groupby(IN_2B1_100['Time_hours']).mean().reset_index()
 IN_std_0B1_100 = IN_0B1_100['Vegetative_percent'].groupby(IN_0B1_100['Time_hours']).std().reset_index()
@@ -53,7 +58,7 @@ IN_std_2B1_500 = IN_2B1_500['Vegetative_percent'].groupby(IN_2B1_500['Time_hours
 fig = plt.figure(figsize=(6,3))
 
 #plt.scatter(IN_mean_0B1.Time_hours.values, IN_mean_0B1.Vegetative_percent.values, c='#87CEEB', marker='o', label='_nolegend_', s = 60)
-plt.plot(IN_mean_0B1_100.Time_hours.values, 1.001- IN_mean_0B1_100.Vegetative_percent.values, \
+plt.plot(IN_mean_0B1_100.Time_hours.values, 1.001- (IN_mean_0B1_100.Vegetative_percent.values), \
     'b-',  c=rgb_blue[5])
 plt.plot(IN_mean_2B1_100.Time_hours.values, 1.001- IN_mean_2B1_100.Vegetative_percent.values, \
     'b-',  c =rgb_red[5])
