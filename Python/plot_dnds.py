@@ -97,6 +97,9 @@ for taxon in taxa:
                     synonymous_fmax_all.append(max(freqs))
 
 
+
+
+
 total_non_appeared = sum([non_appeared[population] for population in populations])
 total_non_fixed = sum([non_fixed[population] for population in populations])
 total_syn_appeared = sum([syn_appeared[population] for population in populations])
@@ -182,11 +185,14 @@ ax.set_xticklabels( ['1-day', '10-days', '100-days'], fontweight='bold', fontsiz
 
 
 legend_elements = [Line2D([0], [0], color = 'none', marker='o', label=pt.latex_dict['B'],
-                    markerfacecolor='k', markersize=13),
+                    markerfacecolor='k', markersize=11),
                 Line2D([0], [0], marker='o', color='none', label=pt.latex_dict['S'],
-                    markerfacecolor='w', markersize=13, markeredgewidth=2)]
+                    markerfacecolor='w', markersize=11, markeredgewidth=2),
+                Line2D([0], [0], ls=':', color='k', label="Neutral model", lw=1.5)]
+
+
 # Create the figure
-ax.legend(handles=legend_elements, loc='upper right')
+ax.legend(handles=legend_elements, loc='upper right', fontsize=11)
 
 
 fig.subplots_adjust(hspace=0.3, wspace=0.5)

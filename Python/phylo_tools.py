@@ -42,14 +42,25 @@ samples_to_remove = {'1B4':[900],
 
 treatment_label_dict = {'0': '1-day', '1':'10-days', '2':'100-days'}
 
+treatment_label_split_dict = {'0': '1\nday', '1':'10\ndays', '2':'100\ndays'}
 
 linestyle_dict = {'B':'--', 'S':':'}
 
+# generations per-transfer * 10, 100, or 1000 transfers
 B_S_generation_dict = {'B': { '0':3321, '1':1171, '2': 107},
                         'S': {'0':3321, '1':544, '2':163} }
 
-def get_B_S_generations(strain, treatment, day_cutoff=500):
 
+def get_per_day_generations(strain, treatment):
+    # returns generations per-day
+    return B_S_generation_dict[strain][treatment] /1000
+
+
+
+def get_B_S_generations(strain, treatment, day_cutoff=500):
+    # total gens  = (per-transfer gens * transfers )
+    # generations by day X =  total gens * (days_i / total_days)
+    # if day_cutoff =1 then
     return B_S_generation_dict[strain][treatment] * (day_cutoff/1000)
 
 
@@ -60,6 +71,15 @@ def hyperbolic_michaelis_menten(t_star, b0, K, v_max):
     t_star = np.asarray(t_star)
 
     return b0 + ( (v_max*t_star)/(t_star+K) )
+
+
+
+def hyperbolic_fitness_notation(t_star, b0, K, v_0):
+    t_star = np.asarray(t_star)
+
+    return b0 + v_0*t_star*( (1 + ((v_0*t_star)/K) )**(-1) )
+
+
 
 
 # function to generate confidence intervals based on Fisher Information criteria
@@ -124,7 +144,7 @@ def fit_hyperbolic_michaelis_menten_best_parameters(t_array, M_array, interceptG
                     # b0, A, umax, L, z
                     start_params = [_b0_start, _K_start, _v_max_start, _z_start]
                     _result = model.fit(start_params = start_params, method="lbfgs", \
-                        bounds= [(-5,5), (0.01,10000), (0.01,1000), (-20, 20)], \
+                        bounds= [(-5,5), (0.0001,10000), (0.0001,1000), (-20, 20)], \
                         disp = False)
 
                     #_result = model.fit(start_params = start_params,  method="bfgs", disp=False)
@@ -137,6 +157,8 @@ def fit_hyperbolic_michaelis_menten_best_parameters(t_array, M_array, interceptG
 
     best = loop_params(model, b0_start, K_start_list, v_max_start_list, z_start_list)
 
+
+    std_errors = best.bse
 
     best_CI_FIC = CI_FIC(best)
     best_CI = best.conf_int()
@@ -161,7 +183,96 @@ def fit_hyperbolic_michaelis_menten_best_parameters(t_array, M_array, interceptG
     # b0, Km V_max, z, CIs
     #return best_params[0], best_params[1], best_params[2], best_params[3], best_CI_lower_V_max, best_CI_upper_V_max
 
-    return best_params[0], best_params[1], best_params[2], best_params[3], ses_K, ses_V_max
+    #return best_params[0], best_params[1], best_params[2], best_params[3], ses_K, ses_V_max
+    return best_params[0], best_params[1], best_params[2], best_params[3], std_errors[1], std_errors[2]
+
+
+
+
+
+
+
+class fit_hyperbolic_fitness_notation(GenericLikelihoodModel):
+    def __init__(self, endog, exog, **kwds):
+        super(fit_hyperbolic_michaelis_menten, self).__init__(endog, exog, **kwds)
+        #print len(exog)
+
+    def nloglikeobs(self, params):
+        b0 = params[0]
+        K = params[1]
+        v_0 = params[2]
+        z = params[3]
+        # probability density function (pdf) is the same as dnorm
+        exog_pred = hyperbolic_michaelis_menten(self.endog, b0 = b0, K = K, v_0 = v_0)
+        # need to flatten the exogenous variable
+        LL = -stats.norm.logpdf(self.exog.flatten(), loc=exog_pred, scale=np.exp(z))
+        return LL
+
+    def fit(self, start_params=None, maxiter=10000, maxfun=5000, method="bfgs", **kwds):
+
+        if start_params is None:
+            b0_start = 1
+            K_start = 2
+            v_0_start = 0.5
+            z_start = 0.8
+
+            start_params = np.array([b0_start, K_start, v_0_start, z_start])
+
+        return super(fit_hyperbolic_michaelis_menten, self).fit(start_params=start_params,
+                                maxiter=maxiter, method = method, maxfun=maxfun,
+                                **kwds)
+
+
+
+
+def fit_hyperbolic_fitness_notation_best_parameters(t_array, M_array, interceptGuess=0.5):
+    # assumes that you've rescaled the x axis so values start at zero
+    K_start_list = [0.05,0.1,1,10]
+    v_0_start_list = [0.1,5,10,20]
+    z_start_list = [-2,-1,-0.5]
+    # and while keeping the following initial values constant
+    b0_start = interceptGuess
+
+    model = fit_hyperbolic_michaelis_menten(t_array, M_array)
+
+
+    def loop_params(_model, _b0_start, K_start_list, v_0_start_list, z_start_list):
+        _results = []
+        for _K_start in K_start_list:
+            for _v_0_start in v_0_start_list:
+                for _z_start in z_start_list:
+                    # b0, A, umax, L, z
+                    start_params = [_b0_start, _K_start, _v_0_start, _z_start]
+                    _result = model.fit(start_params = start_params, method="lbfgs", \
+                        bounds= [(-5,5), (0.01,10000), (0.0001,1000), (-20, 20)], \
+                        disp = False)
+
+                    #_result = model.fit(start_params = start_params,  method="bfgs", disp=False)
+
+                    _results.append(_result)
+        AICs = [_result.aic for _result in _results]
+        _best = _results[AICs.index(min(AICs))]
+        return _best
+
+
+    best = loop_params(model, b0_start, K_start_list, v_0_start_list, z_start_list)
+
+
+    std_errors = best.bse
+
+    best_CI_FIC = CI_FIC(best)
+    best_CI = best.conf_int()
+    best_params = best.params
+
+
+    # order of paramters
+    # b0, K, v_max, z
+    #ses_v_0 = best_CI_FIC[0][2]
+    #ses_K = best_CI_FIC[0][1]
+
+    return best_params[0], best_params[1], best_params[2], best_params[3], std_errors[1], std_errors[2]
+
+
 
 
 
@@ -201,7 +312,7 @@ latex_formal_dict = {  'B': r'$\mathit{Bacillus\, subtilis} \; \mathrm{NCIB \, 3
 
 
 latex_dict = {  'B': r'$\mathit{B.\, subtilis} \; \mathrm{WT}$',
-                'S': r'$\mathit{B.\, subtilis} \; \Delta spo0A $'}
+                'S': r'$\mathit{B.\, subtilis} \; \Delta \mathit{spo0A} $'}
 
 
 latex_bold_dict = {  'B': r"$\mathbf{\textit{B.\, subtilis} \; WT}$",
@@ -252,12 +363,6 @@ def get_p_value_latex(p_value, alpha=0.05):
 
     else:
         return r'$\mathrm{p} \nless 0.05$'
-
-
-
-
-
-
 
 
 

@@ -5,18 +5,32 @@ import sys
 import pickle
 import copy
 
+from itertools import groupby
+
 import phylo_tools as pt
 from itertools import combinations
 
 import scipy.stats as stats
+import  matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+from matplotlib.lines import Line2D
+import matplotlib.transforms as transforms
+import matplotlib.gridspec as gridspec
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+
+
 
 numpy.random.seed(123456789)
 
 
 
-def run_simulation(M):
-    # weird sampling going on
+def all_equal(iterable):
+    g = groupby(iterable)
+    return next(g, True) and not next(g, False)
 
+
+def run_simulation(M = 10, c = 0.00001):
     #4,292,969
     # mutation rate from Lynch paper, assume 10% sites are beneficial
     #mu = (3.28*10**-10 ) * 0.1
@@ -28,13 +42,12 @@ def run_simulation(M):
     N = 10**6
     #M = 10
     K = N/M
-    c = 0.00001
+
     s_scale = 10**-2
     # scale = beta = 1/lambda
     # expected value of fitness effect
-
-
     # average time in a dormant state = M
+    # average time in a dormant state = 1/(n_dormant_to_active/M ) = M/c*K*M = 1/(c*K) = M/(c*N)
     n_active_to_dormant = int(c*N)
     n_dormant_to_active = int(c*K*M)
 
@@ -46,21 +59,16 @@ def run_simulation(M):
     #d = (c* K) / N
     #r = c / M
 
-    # double mutants slow the simulation so we're assuming single mutants
+    # double mutants in a single simulation slow the simulation so we're assuming single mutants
     # e.g., the largest lineage size = 10**6, generated L*mu*N (~1000) mutants per-generation
     # probability that an individual gets two mutations ~= 10 ** -7
 
-
-
     sampled_timepoints = {}
-
-    generations = 3300
+    # offset counts starting at zero
+    generations = 3300 + 1
+    #generations = 991
     generations_to_sample = [330*i for i in range(1, 11)]
-    #generations = 660+1
     #generations_to_sample = [330*i for i in range(1, 3)]
-
-
-
     n_clone_lineages = 0
 
     clone_size_dict = {}
@@ -73,7 +81,6 @@ def run_simulation(M):
     # pre-assign fitness benefits to all sites
     all_sites = set(range(L))
     fitness_effects = numpy.random.exponential(scale=s_scale, size=L)
-
 
     # dict of what clones have a given mutation
     for generation in range(1, generations+1):
@@ -214,8 +221,6 @@ def parse_simulation_output(sampled_timepoints):
 
     for generation, generation_dict in sampled_timepoints.items():
 
-        #print(generation_dict.values())
-        #allele_freq_trajectory_dict[generation] = {}
         N = sum( [ generation_dict[x]['n_clone_active'] for x in  generation_dict.keys() ] )
         M = sum( [ generation_dict[x]['n_clone_dormant'] for x in  generation_dict.keys() ] )
         all_individuals = N+M
@@ -238,18 +243,19 @@ def parse_simulation_output(sampled_timepoints):
             if generation in allele_freq_trajectory_dict[mutation]:
                 allele_freq_trajectory_dict[mutation][generation] = allele_freq_trajectory_dict[mutation][generation]/all_individuals
 
-
-    #print(allele_freq_trajectory_dict)
-
     # now go through and get statistics
     # delta f
     delta_f = []
     ratio_f = []
     r2_f = []
+    max_f = []
     for mutation, time_dict in allele_freq_trajectory_dict.items():
         time_points = list(time_dict.keys())
         if len(time_points) <2:
             continue
+
+        max_f.append(max(time_dict.values()))
+
         time_points.sort()
         for t_idx in range(0, len(time_points)-1 ):
             f_t_delta = time_dict[time_points[t_idx+1]]
@@ -287,6 +293,9 @@ def parse_simulation_output(sampled_timepoints):
                 freqs_i.append(freq_i_t)
                 freqs_j.append(freq_j_t)
 
+        if (all_equal(freqs_i) == True) or (all_equal(freqs_j) == True):
+            continue
+
         if len(freqs_j)>=3:
             r2 = stats.pearsonr(freqs_i, freqs_j)[0] ** 2
             r2_f.append(r2)
@@ -295,48 +304,65 @@ def parse_simulation_output(sampled_timepoints):
     #ratio_f = numpy.asarray(ratio_f)
     #r2_f = numpy.asarray(r2_f)
 
-    return delta_f, ratio_f, r2_f
+    return delta_f, ratio_f, r2_f, max_f
 
 
 
 #parse_simulation_output()
+M_list = numpy.logspace(1, 8, num=20, base=10.0)
+#M_list = [10, 1000, 10000]
+c_list = [0.00001]
 
 def run_all_simulations():
 
-    M_list = [10, 1000, 10000]
+    #K = N/M
+    #n_active_to_dormant = int(c*N)
+    #n_dormant_to_active = int(c*K*M)
+
     flatten = lambda t: [item for sublist in t for item in sublist]
     simulation_final_dict = {}
     for M in M_list:
 
+        M = int(M)
+
         simulation_final_dict[M] = {}
 
-        delta_f_list = []
-        ratio_f_list = []
-        r2_f_list = []
+        for c in c_list:
 
-        for i in range(10):
+            simulation_final_dict[M][c] = {}
 
-            sys.stderr.write("M=%d, Simulation %d\n" % (M, i))
+            delta_f_list = []
+            ratio_f_list = []
+            r2_f_list = []
+            max_f_list = []
 
-            sampled_timepoints = run_simulation(M)
+            for i in range(10):
 
-            delta_f, ratio_f, r2_f = parse_simulation_output(sampled_timepoints)
+                sys.stderr.write("M=%d, c=%f, Simulation %d\n" % (M, c, i))
 
-            delta_f_list.append(delta_f)
-            ratio_f_list.append(ratio_f)
-            r2_f_list.append(r2_f)
+                sampled_timepoints = run_simulation(M=M, c=c)
 
-        #delta_f_pooled = numpy.concatenate(delta_f_list)
-        #ratio_f_pooled = numpy.concatenate(ratio_f_list)
-        #r2_f_pooled = numpy.concatenate(r2_f_list)
+                delta_f, ratio_f, r2_f, max_f = parse_simulation_output(sampled_timepoints)
 
-        delta_f_pooled = flatten(delta_f_list)
-        ratio_f_pooled = flatten(ratio_f_list)
-        r2_f_pooled = flatten(r2_f_list)
+                delta_f_list.append(delta_f)
+                ratio_f_list.append(ratio_f)
+                r2_f_list.append(r2_f)
+                max_f_list.append(max_f)
 
-        simulation_final_dict[M]['delta_f'] = delta_f_pooled
-        simulation_final_dict[M]['ratio_f'] = ratio_f_pooled
-        simulation_final_dict[M]['r2_f'] = r2_f_pooled
+
+            #delta_f_pooled = numpy.concatenate(delta_f_list)
+            #ratio_f_pooled = numpy.concatenate(ratio_f_list)
+            #r2_f_pooled = numpy.concatenate(r2_f_list)
+
+            delta_f_pooled = flatten(delta_f_list)
+            ratio_f_pooled = flatten(ratio_f_list)
+            r2_f_pooled = flatten(r2_f_list)
+            max_f_pooled = flatten(max_f_list)
+
+            simulation_final_dict[M][c]['delta_f'] = delta_f_pooled
+            simulation_final_dict[M][c]['ratio_f'] = ratio_f_pooled
+            simulation_final_dict[M][c]['r2_f'] = r2_f_pooled
+            simulation_final_dict[M][c]['max_f'] = max_f_pooled
 
     sys.stderr.write("Simulations done! Saving pickle......\n")
 
@@ -347,7 +373,38 @@ def run_all_simulations():
 
 
 run_all_simulations()
-#saved_data_file='%s/data/simulations/all_seedbank_sizes.dat' % (pt.get_path())
-#sampled_timepoints = pickle.load( open(saved_data_file, "rb" ) )
 
-#print(sampled_timepoints)
+
+
+def plot_():
+    saved_data_file='%s/data/simulations/all_seedbank_sizes.dat' % (pt.get_path())
+    sampled_timepoints = pickle.load( open(saved_data_file, "rb" ) )
+
+    metrics = ['delta_f', 'ratio_f', 'r2_f']
+
+    fig = plt.figure(figsize = (10, 8))
+    gs = gridspec.GridSpec(nrows=3, ncols=1)
+
+    lines = ['-', '--', ':']
+
+    for metric_idx, metric in enumerate(metrics):
+
+        ax_i = fig.add_subplot(gs[metric_idx, 0])
+        ax_i.set_yscale('log', base=10)
+
+        if metric_idx != 2:
+            ax_i.set_xscale('log', base=10)
+
+        for M_idx, M in enumerate(M_list):
+
+            f_max_array_sort = numpy.sort(sampled_timepoints[M][metric])
+
+            cdf = 1-numpy.arange(len(f_max_array_sort))/float(len(f_max_array_sort))
+
+            ax_i.plot(f_max_array_sort, cdf, c ='k', ls=lines[M_idx], lw=3, alpha=0.8)
+
+
+    fig_name = pt.get_path() + '/figs/simulation.jpg'
+    fig.subplots_adjust(hspace=0.45)
+    fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
+    plt.close()

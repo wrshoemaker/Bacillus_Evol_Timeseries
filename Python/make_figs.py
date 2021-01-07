@@ -302,3 +302,60 @@ def likelihood_plot(ntot_subsample=50, subsamples=10000):
     fig_name = pt.get_path() + "/figs/G_score_subsample.pdf"
     fig.savefig(fig_name, format='pdf', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
     plt.close()
+
+
+
+
+
+
+# plot regression
+#for taxon_idx, taxon in enumerate(taxa):
+#    ax_plot = [ax_regression_wt, ax_regression_spo0a][taxon_idx]
+    #ax_plot.set_title(pt.latex_dict[taxon], fontsize=12, fontweight='bold' )
+#    ax_plot.text(0.05, 0.9, pt.latex_dict[taxon], fontsize=12, transform=ax_plot.transAxes)
+#    ax_plot.set_xlabel("Min. number of generations", fontsize=12)
+#    ax_plot.set_xscale('log', base=10)
+#    ax_plot.set_yscale('log', base=10)
+#    ax_plot.xaxis.set_tick_params(labelsize=8)
+#    ax_plot.yaxis.set_tick_params(labelsize=8)
+#    #ax_plot.set_ylabel('Mutations at day ' + str(set_time) + ', ' + r'$M({{{}}})$'.format(set_time), fontsize=20)
+#    ax_plot.set_ylabel('Mutations, ' + r'$M(t)$', fontsize = 12)
+
+#    if taxon == 'B':
+#        x_lim = [20, 4000]
+#        y_lim = [2, 300]
+#    else:
+#        x_lim = [30, 4000]
+#        y_lim = [0.5, 600]
+
+
+#    ax_plot.set_xlim(x_lim)
+#    ax_plot.set_ylim(y_lim)
+
+
+#    times_all_list = []
+#    mutations_all_list = []
+#    for treatment in treatments:
+
+#        # select timepoint of interest
+#        mutations_list = np.asarray([value[1][  np.where(value[0]==set_time)[0][0]  ] for key, value in mutation_trajectories.items() if treatment+taxon in key])
+#        times_list = np.repeat( np.log10(pt.get_B_S_generations(taxon , treatment)), len(mutations_list))
+#        #ax_plot.scatter((10**times_list) + np.random.randn(len(times_list))*0.1 , 10**mutations_list, s= 180, linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), alpha=0.8, zorder=3)
+#        ax_plot.scatter(10**times_list, 10**mutations_list, s= 180, linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), alpha=0.8, zorder=3)
+
+#        times_all_list.extend(times_list)
+#        mutations_all_list.extend(mutations_list)
+
+#    times_all_list = np.asarray(times_all_list)
+#    mutations_all_list = np.asarray(mutations_all_list)
+
+#    df = pd.DataFrame(
+#    {
+#        "mutations": mutations_all_list,
+#         "generations": times_all_list
+#    })
+#    print(df)
+#    regression_ = ols("mutations ~ generations + I(generations**2)", data = df)
+#    fit_ = regression_.fit()
+#    print(fit_.summary())
+#    print(anova_lm(fit_))

@@ -140,6 +140,9 @@ def run_analyses():
             r2s_all = np.asarray(r2s_all)
             ratio_f_all = np.asarray(ratio_f_all)
             abs_delta_f_all = np.asarray(abs_delta_f_all)
+            #print(abs_delta_f_all[:10])
+            abs_delta_f_all = abs_delta_f_all/pt.B_S_generation_dict[taxon][treatment]
+            #print(abs_delta_f_all[:10])
 
             #r2s_obs_dict[treatment + taxon] = {}
             #r2s_obs_dict[treatment + taxon]['r2'] = r2s_all
@@ -204,19 +207,20 @@ ax_r2.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=10, fontweight='bold', ha
 
 axes = [ax_delta_f, ax_ratio_f, ax_r2]
 
-label_latex_dict = {'abs_delta_f': r'$\left | \Delta f \right |$',
+label_latex_dict = {'abs_delta_f': r'$\frac{\left | \Delta f \right |}{\Delta \tau}$',
                     'ratio_f': r'$\frac{f(t+ \delta t)}{f(t)}$',
                     'r2': r'$\rho^{2}_{M^{(i)}, M^{(j)} } $'}
 
 
-label_text_dict = {'abs_delta_f': 'Absolute change in allele frequencies\nbetween timepoints',
+label_text_dict = {'abs_delta_f': 'Absolute change in allele frequencies\nper-generation',
                     'ratio_f': 'Ratio of allele frequency changes',
                     'r2': 'Squared correlation between\nallele frequency trajectories'}
 
 
 
-xlims = [[0.01, 1.1], [0.3, 300], [0.08, 1.02]]
-ylims = [[0.0001, 1.1], [0.0005, 1.1], [0.01, 1.1]]
+xlims = [[0.000001, 0.01], [0.3, 300], [0.08, 1.02]]
+ylims = [[0.0005, 1.1], [0.0005, 1.1], [0.01, 1.1]]
+ylims_inset = [[-0.07, 0.87],[-0.05, 0.6],[-0.05, 0.6]]
 
 count = 0
 for analysis, analysis_ax,  in zip(analyses, axes):
@@ -248,7 +252,7 @@ for analysis, analysis_ax,  in zip(analyses, axes):
     ins_ks.tick_params(axis='both', which='major', pad=1)
 
     ins_ks.set_xlim([-0.5, 2.5])
-    ins_ks.set_ylim([-0.05, 0.6])
+    ins_ks.set_ylim(ylims_inset[count])
 
     ins_ks.set_xticks([0, 1, 2])
     ins_ks.set_xticklabels(['1-day', '10-days', '100-days'],fontweight='bold' )

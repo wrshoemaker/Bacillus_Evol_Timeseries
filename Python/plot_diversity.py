@@ -114,7 +114,7 @@ def format_parameter(taxon, parameter, estiamte, std_error, sig_figs=3):
             param = r'$v_{\mathrm{max, WT}} =$'
         else:
             #param = r'$\partial_{t}M |_{\mathrm{max, \Delta}spo0A} =$'
-            param = r'$v_{\mathrm{max, \Delta}spo0A} =$'
+            param = r'$v_{\mathrm{max, \Delta} \mathit{spo0A}} =$'
 
     else:
 
@@ -133,49 +133,74 @@ def format_parameter(taxon, parameter, estiamte, std_error, sig_figs=3):
 
 
 #fig = plt.figure(figsize = (15, 8))
-fig = plt.figure(figsize = (10, 8))
+fig = plt.figure(figsize = (12, 8))
 
 row_count = 0
 
 #gs = gridspec.GridSpec(nrows=6, ncols=5)
-gs = gridspec.GridSpec(nrows=6, ncols=3)
+gs = gridspec.GridSpec(nrows=6, ncols=4)
 
 ax_hyper_0 = fig.add_subplot(gs[0:2, 0])
 ax_hyper_1 = fig.add_subplot(gs[2:4, 0])
 ax_hyper_2 = fig.add_subplot(gs[4:6, 0])
+
+ax_M_max = fig.add_subplot(gs[0:3, 1])
+ax_K = fig.add_subplot(gs[3:6, 1])
 
 #ax_regression_wt = fig.add_subplot(gs[0:3, 1:3])
 #ax_regression_spo0a = fig.add_subplot(gs[3:6, 1:3])
 
 #ax_fixed = fig.add_subplot(gs[0:3, 3:])
 #ax_fmax = fig.add_subplot(gs[3:6, 3:])
-ax_fixed = fig.add_subplot(gs[0:3, 1:3])
-ax_fmax = fig.add_subplot(gs[3:6, 1:3])
+ax_fixed = fig.add_subplot(gs[0:3, 2:4])
+ax_fmax = fig.add_subplot(gs[3:6, 2:4])
 
-ax_hyper_0.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_0.transAxes)
-ax_hyper_1.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_1.transAxes)
-ax_hyper_2.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_2.transAxes)
+ins_ks = inset_axes(ax_fmax, width="100%", height="100%", loc='lower right', bbox_to_anchor=(0.12,0.07,0.4,0.38), bbox_transform=ax_fmax.transAxes)
+
+
+axes = [ax_hyper_0, ax_hyper_1, ax_hyper_2, ax_M_max, ax_K, ax_fixed, ax_fmax, ins_ks]
+
+for ax_i_idx, ax_i in enumerate(axes):
+    if ax_i_idx == len(axes)-1:
+        fontsize = 8
+    else:
+        fontsize = 11
+
+    if (ax_i_idx == 3) or (ax_i_idx == 4):
+        x_text = -0.3
+    else:
+        x_text = -0.1
+
+    ax_i.text(x_text, 1.07, pt.sub_plot_labels[ax_i_idx], fontsize=fontsize, fontweight='bold', ha='center', va='center', transform=ax_i.transAxes)
+
+
+
+#ax_hyper_0.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_0.transAxes)
+#ax_hyper_1.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_1.transAxes)
+#ax_hyper_2.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_hyper_2.transAxes)
 #ax_regression_wt.text(-0.1, 1.07, pt.sub_plot_labels[3], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_regression_wt.transAxes)
 #ax_regression_spo0a.text(-0.1, 1.07, pt.sub_plot_labels[4], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_regression_spo0a.transAxes)
 #ax_fixed.text(-0.1, 1.07, pt.sub_plot_labels[5], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fixed.transAxes)
 #ax_fmax.text(-0.1, 1.07, pt.sub_plot_labels[6], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fmax.transAxes)
-ax_fixed.text(-0.1, 1.07, pt.sub_plot_labels[3], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fixed.transAxes)
-ax_fmax.text(-0.1, 1.07, pt.sub_plot_labels[4], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fmax.transAxes)
+#ax_fixed.text(-0.1, 1.07, pt.sub_plot_labels[3], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fixed.transAxes)
+#ax_fmax.text(-0.1, 1.07, pt.sub_plot_labels[4], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fmax.transAxes)
 
 
-ins_ks = inset_axes(ax_fmax, width="100%", height="100%", loc='lower right', bbox_to_anchor=(0.12,0.07,0.4,0.38), bbox_transform=ax_fmax.transAxes)
 
-ins_ks.text(-0.1, 1.07, pt.sub_plot_labels[5], fontsize=10, fontweight='bold', ha='center', va='center', transform=ins_ks.transAxes)
+#ins_ks.text(-0.1, 1.07, pt.sub_plot_labels[5], fontsize=10, fontweight='bold', ha='center', va='center', transform=ins_ks.transAxes)
 
 legend_elements_hyper = [Line2D([0], [0], ls='--', color='k', lw=1.5, label= 'Fit: ' + r'$\mathrm{WT}$'),
-                   Line2D([0], [0], ls=':', color='k', lw=1.5, label= 'Fit: ' + r'$\Delta spo0A$')]
+                   Line2D([0], [0], ls=':', color='k', lw=1.5, label= 'Fit: ' + r'$\Delta \mathit{spo0A}$')]
 ax_hyper_0.legend(handles=legend_elements_hyper, loc='upper right', fontsize=6.5)
+
 
 
 
 ax_hyper_list = [ax_hyper_0, ax_hyper_1, ax_hyper_2]
 
 # ax = fig.add_subplot(gs[taxon_idx*2:(taxon_idx*2)+2  , taxon_list_idx])
+
+param_dict = {}
 
 for treatment_idx, treatment in enumerate(treatments):
 
@@ -209,17 +234,41 @@ for treatment_idx, treatment in enumerate(treatments):
         b0, K, V_max, z, ses_K, ses_V_max =  pt.fit_hyperbolic_michaelis_menten_best_parameters(Mts_shifted_all, Ms_all)
         predicted_Ms = pt.hyperbolic_michaelis_menten(Mts_shifted_range, b0, K, V_max)
 
+        #if (treatment == '1') or (treatment=='2'):
+        #    continue
+
+        #b0, K, v_0, z, ses_K, ses_v_0 =  pt.fit_hyperbolic_fitness_notation_best_parameters(Mts_shifted_all, Ms_all)
+        #predicted_Ms = pt.hyperbolic_fitness_notation(Mts_shifted_range, b0, K, v_0)
+
         ax_t_vs_M.plot(Mts_shifted_range+100, 10**predicted_Ms, ls=pt.linestyle_dict[taxon], color='k', alpha=1, markersize=7,linewidth=3, markeredgewidth=1.5, zorder=1)
+        #ax_t_vs_M.plot(Mts_shifted_range+100, predicted_Ms, ls=pt.linestyle_dict[taxon], color='k', alpha=1, markersize=7,linewidth=3, markeredgewidth=1.5, zorder=1)
+
         generations_per_day = pt.get_B_S_generations(taxon, treatment, day_cutoff=1)
 
-        formatted_parameter_K = format_parameter(taxon, 'K', K, ses_K, sig_figs=3)
-        formatted_parameter_V_max = format_parameter(taxon, 'V_max', V_max, ses_V_max, sig_figs=3)
+        #formatted_parameter_K = format_parameter(taxon, 'K', K, ses_K, sig_figs=3)
+        #formatted_parameter_V_max = format_parameter(taxon, 'V_max', V_max, ses_V_max, sig_figs=3)
+
 
         #ax_t_vs_M.text(position_dict[treatment][taxon]['K'][0], position_dict[treatment][taxon]['K'][1], formatted_parameter_K, fontsize=6, transform=ax_t_vs_M.transAxes)
         #ax_t_vs_M.text(position_dict[treatment][taxon]['V'][0], position_dict[treatment][taxon]['V'][1], formatted_parameter_V_max, fontsize=6, transform=ax_t_vs_M.transAxes)
 
-        print(treatment, taxon, 'K',  K, '+/-', ses_K)
+        K_generations = K * pt.get_per_day_generations(taxon, treatment)
+        ses_K_generations = ses_K * pt.get_per_day_generations(taxon, treatment)
+
         print(treatment, taxon, 'V_max',  V_max, '+/-', ses_V_max)
+        print(treatment, taxon, 'K',  K, '+/-', ses_K)
+        print(treatment, taxon, 'K_gen',  K_generations, '+/-', ses_K_generations)
+
+        if taxon not in param_dict:
+            param_dict[taxon] = {}
+        param_dict[taxon][treatment] = {}
+        param_dict[taxon][treatment]['K_gen'] = K_generations
+        param_dict[taxon][treatment]['ses_K_generations'] = ses_K_generations
+        param_dict[taxon][treatment]['V_max'] = V_max
+        param_dict[taxon][treatment]['ses_V_max'] = ses_V_max
+
+
+
 
     ax_t_vs_M.set_ylim([0.53 , 800])
     ax_t_vs_M.set_yscale('log', base=10)
@@ -234,7 +283,7 @@ for treatment_idx, treatment in enumerate(treatments):
     elif treatment == '1':
         ax_t_vs_M.text(0.2, 0.9, pt.treatment_label_dict[treatment], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_t_vs_M.transAxes)
     else:
-        ax_t_vs_M.text(0.8 , 0.9, pt.treatment_label_dict[treatment], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_t_vs_M.transAxes)
+        ax_t_vs_M.text(0.25  , 0.9, pt.treatment_label_dict[treatment], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_t_vs_M.transAxes)
 
 
 
@@ -242,57 +291,91 @@ for treatment_idx, treatment in enumerate(treatments):
 
 
 
-# plot regression
-#for taxon_idx, taxon in enumerate(taxa):
-#    ax_plot = [ax_regression_wt, ax_regression_spo0a][taxon_idx]
-    #ax_plot.set_title(pt.latex_dict[taxon], fontsize=12, fontweight='bold' )
-#    ax_plot.text(0.05, 0.9, pt.latex_dict[taxon], fontsize=12, transform=ax_plot.transAxes)
-#    ax_plot.set_xlabel("Min. number of generations", fontsize=12)
-#    ax_plot.set_xscale('log', base=10)
-#    ax_plot.set_yscale('log', base=10)
-#    ax_plot.xaxis.set_tick_params(labelsize=8)
-#    ax_plot.yaxis.set_tick_params(labelsize=8)
-#    #ax_plot.set_ylabel('Mutations at day ' + str(set_time) + ', ' + r'$M({{{}}})$'.format(set_time), fontsize=20)
-#    ax_plot.set_ylabel('Mutations, ' + r'$M(t)$', fontsize = 12)
 
-#    if taxon == 'B':
-#        x_lim = [20, 4000]
-#        y_lim = [2, 300]
-#    else:
-#        x_lim = [30, 4000]
-#        y_lim = [0.5, 600]
+# plot paramters
+#ax_M_max = fig.add_subplot(gs[0:3, 1])
+#ax_K = fig.add_subplot(gs[3:6, 1])
 
 
-#    ax_plot.set_xlim(x_lim)
-#    ax_plot.set_ylim(y_lim)
+
+#V_max_list = []
+#K_list = []
+#y_axis_params = []
+counts_params = 0
+counts_list = []
+for taxon in taxa:
+
+    for treatment in treatments:
+
+        v_max_ = param_dict[taxon][treatment]['V_max']
+        k_ = param_dict[taxon][treatment]['K_gen']
+        #y_axis_params.append(counts_params)
+
+        #V_max_list.append(x_)
+        #K_list.append(y_)
+
+        ax_M_max.scatter(v_max_, counts_params, s = 180, \
+            linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), \
+            edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), \
+            alpha=0.6, zorder=2)
+
+        ax_K.scatter(k_, counts_params, s = 180, \
+            linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), \
+            edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), \
+            alpha=0.6, zorder=2)
+
+        counts_list.append(counts_params)
+        counts_params += 1
 
 
-#    times_all_list = []
-#    mutations_all_list = []
-#    for treatment in treatments:
 
-#        # select timepoint of interest
-#        mutations_list = np.asarray([value[1][  np.where(value[0]==set_time)[0][0]  ] for key, value in mutation_trajectories.items() if treatment+taxon in key])
-#        times_list = np.repeat( np.log10(pt.get_B_S_generations(taxon , treatment)), len(mutations_list))
-#        #ax_plot.scatter((10**times_list) + np.random.randn(len(times_list))*0.1 , 10**mutations_list, s= 180, linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), alpha=0.8, zorder=3)
-#        ax_plot.scatter(10**times_list, 10**mutations_list, s= 180, linewidth=3, facecolors=pt.get_scatter_facecolor(taxon, treatment), edgecolors=pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), alpha=0.8, zorder=3)
 
-#        times_all_list.extend(times_list)
-#        mutations_all_list.extend(mutations_list)
+#ax.set_xlim([0.8 , 10])
 
-#    times_all_list = np.asarray(times_all_list)
-#    mutations_all_list = np.asarray(mutations_all_list)
+ax_K.set_xscale('log', base=10)
 
-#    df = pd.DataFrame(
-#    {
-#        "mutations": mutations_all_list,
-#         "generations": times_all_list
-#    })
-#    print(df)
-#    regression_ = ols("mutations ~ generations + I(generations**2)", data = df)
-#    fit_ = regression_.fit()
-#    print(fit_.summary())
-#    print(anova_lm(fit_))
+
+#y_ticks_params =  ['1\nday', '10\ndays', '100\ndays', '1\nday', '10\ndays', '100\ndays']
+y_ticks_params =  ['1', '10', '100', '1', '10', '100']
+#rotation=90,
+ax_M_max.set_yticks(counts_list)
+ax_M_max.set_yticklabels( y_ticks_params, fontweight='bold', fontsize=7.5, va="center")
+
+ax_K.set_yticks(counts_list)
+ax_K.set_yticklabels( y_ticks_params, fontweight='bold', fontsize=7.5, va="center")
+
+
+ax_M_max.set_xlabel('Maximum value of ' + r'$M(t)$' + ', ' + r'$\left [ \mathrm{log}_{10} M \right ]_{\mathrm{max}}$', fontsize = 9)
+ax_K.set_xlabel('Generation where ' + r'$M(t)$' + ' is\nhalf its maximum, '  + r'$\tau_{1/2}$', fontsize = 10)
+
+
+
+
+ax_M_max.tick_params(axis="x", labelsize=7.5)
+ax_K.tick_params(axis="x", labelsize=8)
+
+
+ax_M_max.set_ylim([-0.5, max(counts_list)+0.5])
+ax_K.set_ylim([-0.5, max(counts_list)+0.5])
+
+#ax_M_max.tick_params(labelsize=8)
+
+ax_M_max.set_xlim([0.3, 8.8])
+
+ax_K.set_xlim([10**1.1, 10**3.7])
+
+
+ax_M_max.text(-0.3, 0.5, "Day(s)", fontsize=12, rotation=90, fontweight='bold', ha='center', va='center', transform=ax_M_max.transAxes)
+ax_K.text(-0.3, 0.5, "Day(s)", fontsize=12, rotation=90, fontweight='bold', ha='center', va='center', transform=ax_K.transAxes)
+
+
+
+
+ax_M_max.axhline(y=2.5, color='k', linestyle='--',  lw=2, alpha=1, zorder=1)
+ax_K.axhline(y=2.5, color='k', linestyle='--',  lw=2, alpha=1, zorder=1)
+
+
+
 
 
 # then plot fixed mutations
@@ -333,6 +416,8 @@ ax_fixed.set_ylabel('Fixed mutations, per-generation', fontsize=11)
 #ax_pca.set_xscale('symlog')
 ax_fixed.set_xlim([-0.5, 5.5])
 
+ax_fixed.axhline(y=0, color='k', linestyle='--',  lw=2, alpha=1, zorder=1)
+
 
 ax_fixed.set_xticks([])
 # for minor ticks
@@ -343,6 +428,11 @@ ax_fixed.set_xticklabels([])
 ax_fixed.set_xticks([0.5, 2.5, 4.5])
 ax_fixed.set_xticklabels(['1-day', '10-days', '100-days'],fontweight='bold' )
 ax_fixed.tick_params(axis='x', labelsize=12, length = 0)
+
+#ax_fixed.tick_params(labelsize=8)
+
+ax_fixed.tick_params(axis="y", labelsize=6)
+
 
 
 legend_elements_fixed = [Line2D([0], [0], color = 'none', marker='o', label=pt.latex_dict['B'],
@@ -428,6 +518,7 @@ ax_fmax.set_ylim([ 0.0008, 1.03 ])
 
 ax_fmax.set_xscale('log', base=10)
 ax_fmax.set_yscale('log', base=10)
+ax_fmax.tick_params(labelsize=8)
 
 ax_fmax.set_xlabel('Maximum observed allele frequency, ' + r'$f_{max}$', fontsize=12)
 ax_fmax.set_ylabel('Fraction of mutations ' + r'$\geq f_{max}$', fontsize=12)
@@ -437,6 +528,8 @@ legend_elements_fmax = [Line2D([0], [0], ls='--', color='k', lw=1.5, label= pt.l
                    Line2D([0], [0], ls=':', color='k', lw=1.5, label= pt.latex_dict['S'])]
 
 ax_fmax.legend(handles=legend_elements_fmax, loc='upper right', fontsize=8)
+
+ax_fmax.tick_params(axis="y", labelsize=6)
 
 
 
@@ -457,6 +550,9 @@ for treatment_idx, treatment in enumerate(ks_dict.keys()):
     ins_ks.plot(treatment_idx, D, markersize = 11, marker = 'o',  \
         linewidth=0.4,  alpha=1, fillstyle='left', zorder=2 , **marker_style)
 
+    if ks_dict[treatment]['p_value_bh'] < 0.05:
+        ins_ks.text(treatment_idx, D+0.06, '*', ha='center', fontsize=8)
+
 
 
 ins_ks.tick_params(labelsize=5)
@@ -471,17 +567,11 @@ ins_ks.tick_params(axis='x', labelsize=6.5, length = 0)
 
 ins_ks.axhline(y=0, color='k', linestyle=':', alpha = 0.8, zorder=1)
 
+
 #fig.text(0.53, 0.02, 'Days, ' + r'$t$', ha='center', fontsize=28)
 
-fig.subplots_adjust(hspace=0.65,wspace=0.4) #hspace=0.3, wspace=0.5
+fig.subplots_adjust(hspace=0.6,wspace=0.45) #hspace=0.3, wspace=0.5
 fig_name = pt.get_path() + '/figs/diversity.jpg'
-fig.savefig(fig_name, format='jpg',  bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
+# pad_inches = 0.4,
+fig.savefig(fig_name, format='jpg',  bbox_inches = "tight", pad_inches = 0.1, dpi = 600)
 plt.close()
-
-
-
-
-
-
-
-#plot_mutation_trajectory_B_S()
