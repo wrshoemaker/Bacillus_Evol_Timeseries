@@ -367,6 +367,29 @@ def get_p_value_latex(p_value, alpha=0.05):
 
 
 
+def calculate_standard_score(obs, null_array):
+
+    return (obs - np.mean(null_array)) / np.std(null_array)
+
+
+
+
+def calculate_p_value_permutation(obs, null_array, pseudocount=1):
+
+    # two sided test
+    null_median = np.median(null_array)
+
+    #print(sum(p_obs_median>=p_obs))
+
+    if obs >= null_median:
+
+        p_value = (sum(null_array>=obs) + pseudocount ) / (len(null_array) + pseudocount)
+
+    else:
+
+        p_value = (sum(null_array<obs) + pseudocount ) / (len(null_array) + pseudocount)
+
+    return p_value
 
 
 

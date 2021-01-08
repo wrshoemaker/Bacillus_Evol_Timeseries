@@ -26,7 +26,7 @@ np.random.seed(123456789)
 # read in nonsignificant genes and add those conts in..
 
 
-permutations_divergence = 10000
+permutations_divergence = 100000
 
 treatment_pairs = [['0','1'],['0','2'],['1','2']]
 
@@ -92,6 +92,8 @@ def calculate_divergence_correlations_between_taxa():
     output_file.write(", ".join(["Transfer regime", "Taxon", "Locus tag", "RefSeq protein ID", "Gene", "|Delta relative mult|", "P, BH corrected"]))
 
     divergence_dict = {}
+    all_p_value_corr = []
+    all_p_value_corr_squared = []
     for treatment_idx, treatment in enumerate(pt.treatments):
         all_genes = set(significant_n_mut_dict['B'].keys()) & significant_n_mut_dict['S'].keys()
         result = []
@@ -176,12 +178,21 @@ def calculate_divergence_correlations_between_taxa():
         pearsons_corr_null_abs = np.absolute(pearsons_corr_null)
         pearsons_corr_squared_null_abs = np.absolute(pearsons_corr_squared_null)
 
-        Z_corr_squared = (pearsons_corr_squared - np.mean(pearsons_corr_squared_null)) / np.std(pearsons_corr_squared_null)
-        Z_corr = (pearsons_corr - np.mean(pearsons_corr_null)) / np.std(pearsons_corr_null)
+        #Z_corr_squared = (pearsons_corr_squared - np.mean(pearsons_corr_squared_null)) / np.std(pearsons_corr_squared_null)
+        #Z_corr = (pearsons_corr - np.mean(pearsons_corr_null)) / np.std(pearsons_corr_null)
 
-        P_corr_squared = (len(pearsons_corr_squared_null_abs[pearsons_corr_squared_null_abs < np.absolute(pearsons_corr_squared)]) +1) / (permutations_divergence+1)
-        P_corr = (len(pearsons_corr_null_abs[pearsons_corr_null_abs < np.absolute(pearsons_corr)]) +1) / (permutations_divergence+1)
+        Z_corr_squared = pt.calculate_standard_score(pearsons_corr_squared, pearsons_corr_squared_null)
+        Z_corr = pt.calculate_standard_score(pearsons_corr, pearsons_corr_null)
 
+
+        #P_corr_squared = (len(pearsons_corr_squared_null_abs[pearsons_corr_squared_null_abs < np.absolute(pearsons_corr_squared)]) +1) / (permutations_divergence+1)
+        #P_corr = (len(pearsons_corr_null_abs[pearsons_corr_null_abs < np.absolute(pearsons_corr)]) +1) / (permutations_divergence+1)
+
+        #_corr_squared = (len(pearsons_corr_squared_null_abs[pearsons_corr_squared_null_abs < np.absolute(pearsons_corr_squared)]) +1) / (permutations_divergence+1)
+        #P_corr = (len(pearsons_corr_null_abs[pearsons_corr_null_abs < np.absolute(pearsons_corr)]) +1) / (permutations_divergence+1)
+
+        P_corr_squared = pt.calculate_p_value_permutation(pearsons_corr_squared, pearsons_corr_squared_null)
+        P_corr = pt.calculate_p_value_permutation(pearsons_corr, pearsons_corr_null)
 
         divergence_dict[treatment] = {}
         divergence_dict[treatment]['pearsons_corr_squared'] = pearsons_corr_squared
@@ -192,7 +203,23 @@ def calculate_divergence_correlations_between_taxa():
         divergence_dict[treatment]['P_value_corr'] = P_corr
         divergence_dict[treatment]['Z_corr'] = Z_corr
 
+        all_p_value_corr.append(P_corr)
+        all_p_value_corr_squared.append(P_corr_squared)
+
+
         sys.stdout.write("%d-day, WT vs. spo0A: rho=%f, P=%f, Z=%f\n" % (10**int(treatment), pearsons_corr, P_corr, Z_corr))
+
+
+
+    reject_corr, pvals_corrected_corr, alphacSidak_corr, alphacBonf_corr = multitest.multipletests(all_p_value_corr, alpha=0.05, method='fdr_bh')
+    reject_corr_squared, pvals_corrected_corr_squared, alphacSidak_corr_squared, alphacBonf_corr_squared = multitest.multipletests(all_p_value_corr_squared, alpha=0.05, method='fdr_bh')
+    for treatment_idx, treatment in enumerate(pt.treatments):
+
+        divergence_dict[treatment]['P_value_corr_bh'] = pvals_corrected_corr[treatment_idx]
+        divergence_dict[treatment]['P_value_corr_squared_bh'] = pvals_corrected_corr_squared[treatment_idx]
+
+
+
 
     sys.stdout.write("Dumping pickle......\n")
 
@@ -212,6 +239,9 @@ def calculate_divergence_correlations_between_treatments():
     sys.stdout.write("Starting divergence tests...\n")
 
     divergence_dict = {}
+
+    all_p_value_corr = []
+    all_p_value_corr_squared = []
 
     for treatment_pair_idx, treatment_pair in enumerate(treatment_pairs):
 
@@ -262,11 +292,17 @@ def calculate_divergence_correlations_between_treatments():
             pearsons_corr_null_abs = np.absolute(pearsons_corr_null)
             pearsons_corr_squared_null_abs = np.absolute(pearsons_corr_squared_null)
 
-            Z_corr_squared = (pearsons_corr_squared - np.mean(pearsons_corr_squared_null)) / np.std(pearsons_corr_squared_null)
-            Z_corr = (pearsons_corr - np.mean(pearsons_corr_null)) / np.std(pearsons_corr_null)
+            #Z_corr_squared = (pearsons_corr_squared - np.mean(pearsons_corr_squared_null)) / np.std(pearsons_corr_squared_null)
+            #Z_corr = (pearsons_corr - np.mean(pearsons_corr_null)) / np.std(pearsons_corr_null)
 
-            P_corr_squared = (len(pearsons_corr_squared_null_abs[pearsons_corr_squared_null_abs < np.absolute(pearsons_corr_squared)]) +1) / (permutations_divergence+1)
-            P_corr = (len(pearsons_corr_null_abs[pearsons_corr_null_abs < np.absolute(pearsons_corr)]) +1) / (permutations_divergence+1)
+            Z_corr_squared = pt.calculate_standard_score(pearsons_corr_squared, pearsons_corr_squared_null)
+            Z_corr = pt.calculate_standard_score(pearsons_corr, pearsons_corr_null)
+
+            #P_corr_squared = (len(pearsons_corr_squared_null_abs[pearsons_corr_squared_null_abs < np.absolute(pearsons_corr_squared)]) +1) / (permutations_divergence+1)
+            #P_corr = (len(pearsons_corr_null_abs[pearsons_corr_null_abs < np.absolute(pearsons_corr)]) +1) / (permutations_divergence+1)
+
+            P_corr_squared = pt.calculate_p_value_permutation(pearsons_corr_squared, pearsons_corr_squared_null)
+            P_corr = pt.calculate_p_value_permutation(pearsons_corr, pearsons_corr_null)
 
             divergence_dict[treatment_pair_set][taxon] = {}
             divergence_dict[treatment_pair_set][taxon]['pearsons_corr_squared'] = pearsons_corr_squared
@@ -277,7 +313,28 @@ def calculate_divergence_correlations_between_treatments():
             divergence_dict[treatment_pair_set][taxon]['P_value_corr'] = P_corr
             divergence_dict[treatment_pair_set][taxon]['Z_corr'] = Z_corr
 
+            all_p_value_corr.append(P_corr)
+            all_p_value_corr_squared.append(P_corr_squared)
+
             sys.stdout.write("%d vs %d-day, %s: rho=%f, P=%f, Z=%f\n" % (10**int(treatment_pair[0]), 10**int(treatment_pair[1]), taxon, pearsons_corr, P_corr, Z_corr))
+
+    reject_corr, pvals_corrected_corr, alphacSidak_corr, alphacBonf_corr = multitest.multipletests(all_p_value_corr, alpha=0.05, method='fdr_bh')
+    reject_corr_squared, pvals_corrected_corr_squared, alphacSidak_corr_squared, alphacBonf_corr_squared = multitest.multipletests(all_p_value_corr_squared, alpha=0.05, method='fdr_bh')
+
+    count_multitest = 0
+
+    for treatment_pair in treatment_pairs:
+
+        treatment_pair_set = (treatment_pair[0], treatment_pair[1])
+
+        for taxon in pt.taxa:
+
+            divergence_dict[treatment_pair_set][taxon]['P_value_corr_bh'] = pvals_corrected_corr[count_multitest]
+            divergence_dict[treatment_pair_set][taxon]['P_value_corr_squared_bh'] = pvals_corrected_corr_squared[count_multitest]
+
+            count_multitest+=1
+
+
 
     sys.stdout.write("Dumping pickle......\n")
     with open(pt.get_path()+'/data/divergence_pearsons_between_treatments.pickle', 'wb') as handle:
@@ -320,6 +377,12 @@ for treatment_idx, treatment in enumerate(divergence_dict_between_taxa.keys()):
     ax_between_taxa.plot(treatment, Z_corr, markersize = 30, marker = 'o',  \
         linewidth=0.4,  alpha=1, fillstyle='left', zorder=2 , **marker_style)
 
+    if divergence_dict_between_taxa[treatment]['P_value_corr_bh'] < 0.05:
+        ax_between_taxa.text(treatment, Z_corr+1.8, '*', ha='center', fontweight='bold', fontsize=20)
+
+
+
+
 
 
 ax_between_taxa.set_xlim([-0.5,2.5])
@@ -327,8 +390,13 @@ ax_between_taxa.set_ylim([-33,5])
 
 
 ax_between_taxa.axhline( y=0, color='k', lw=3, linestyle=':', alpha = 1, zorder=1)
-ax_between_taxa.text(0.125, 0.91, 'Convergence', fontsize=15, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
-ax_between_taxa.text(0.115, 0.83, 'Divergence', fontsize=15 , fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+#ax_between_taxa.text(0.125, 0.91, 'Convergence', fontsize=15, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+#ax_between_taxa.text(0.115, 0.83, 'Divergence', fontsize=15 , fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+
+ax_between_taxa.text(0.5, 0.91, 'Convergence', fontsize=15, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+ax_between_taxa.text(0.5, 0.82, 'Divergence', fontsize=15 , fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+
+
 ax_between_taxa.set_ylabel("Standardized correlation, "+ r'$Z_{\rho}$' , fontsize = 16)
 
 ax_between_taxa.set_xticks([0, 1, 2])
@@ -355,6 +423,10 @@ for taxon in pt.taxa:
 
         ax_between_treatments.plot(count, Z_corr, markersize = 28,   \
             linewidth=2,  alpha=1, zorder=3, fillstyle='left', **marker_style)
+
+        if divergence_dict_between_treatments[tuple(treatment_pair)][taxon]['P_value_corr_bh'] < 0.05:
+            ax_between_treatments.text(count, Z_corr+0.9, '*', ha='center', fontweight='bold', fontsize=20)
+
 
 
         count+=1
