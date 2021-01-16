@@ -214,16 +214,23 @@ for treatment_idx, treatment in enumerate(treatments):
         Mts_all_list = []
         Ms_all_list = []
 
+        Ms_0_list = []
+
         for replicate in replicates:
 
             population = treatment + taxon + replicate
 
             Mts,Ms = mutation_trajectories[population]
 
+            Ms_0_list.append(Ms[np.where(Mts==100)[0][0]])
+
+
             ax_t_vs_M.plot(Mts, 10**Ms, 'o-',color= pt.get_colors(treatment), marker=pt.plot_species_marker(taxon), fillstyle=pt.plot_species_fillstyle(taxon), alpha=1, markersize=7,linewidth=3, markeredgewidth=1.5, zorder=1)
 
             Mts_all_list.append(Mts)
             Ms_all_list.append(Ms)
+
+        Ms_0_mean = np.mean(Ms_0_list)
 
         Mts_all = np.concatenate(Mts_all_list)
         Ms_all = np.concatenate(Ms_all_list)
@@ -233,6 +240,8 @@ for treatment_idx, treatment in enumerate(treatments):
         Mts_shifted_range = np.linspace(0, max(Mts_shifted_all), num=1000)
         b0, K, V_max, z, ses_K, ses_V_max =  pt.fit_hyperbolic_michaelis_menten_best_parameters(Mts_shifted_all, Ms_all)
         predicted_Ms = pt.hyperbolic_michaelis_menten(Mts_shifted_range, b0, K, V_max)
+
+        pt.fit_hyperbolic_michaelis_menten_scipy(Mts_all, Ms_all, Ms_0_mean)
 
         #if (treatment == '1') or (treatment=='2'):
         #    continue

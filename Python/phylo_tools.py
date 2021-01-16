@@ -11,6 +11,8 @@ import matplotlib.transforms as transforms
 import scipy.stats as stats
 from statsmodels.base.model import GenericLikelihoodModel
 
+from scipy import optimize
+
 from scipy.linalg import block_diag
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -275,8 +277,28 @@ def fit_hyperbolic_fitness_notation_best_parameters(t_array, M_array, interceptG
 
 
 
+def fit_hyperbolic_michaelis_menten_scipy(ts, xs, x0):
 
+    ts = np.asarray(ts)
+    xs = np.asarray(xs)
 
+    #x0 = xs[0]
+
+    ts = ts - ts[0]
+
+    K_init = 100
+    v_max_init = 10
+
+    def hyperbolic_michaelis_menten(ts, K, v_max):
+
+        return x0 + ( (v_max*ts)/(ts+K) )
+
+    xmin = optimize.fmin(lambda x: np.square(xs-hyperbolic_michaelis_menten(ts, x[0],x[1])).sum(), np.array([K_init, v_max_init]))
+
+    K = xmin[0]
+    v_max = xmin[1]
+
+    return K, v_max
 
 
 

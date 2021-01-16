@@ -235,6 +235,132 @@ def create_annotation_map(taxon, gene_data=None):
     return position_gene_map, effective_gene_lengths, substitution_specific_synonymous_fraction
 
 
+def calculate_target_sizes_spore_genes(taxon='B', gene_data=None):
+
+    spore_locus_tags = get_spore_locus_tags()
+
+    if gene_data==None:
+        gene_data = parse_gene_list(taxon)
+
+    gene_names, gene_start_positions, gene_end_positions, promoter_start_positions, promoter_end_positions, gene_sequences, strands, genes, features, protein_ids = gene_data
+    position_gene_map = {}
+    gene_position_map = {}
+    # new
+    gene_feature_map = {}
+
+    # then greedily annotate genes at remaining sites
+    for gene_name, feature, start, end in zip(gene_names, features, gene_start_positions, gene_end_positions):
+        gene_feature_map[gene_name] = feature
+        for position in range(start,end+1):
+            if position not in position_gene_map:
+                position_gene_map[position] = gene_name
+                if gene_name not in gene_position_map:
+                    gene_position_map[gene_name]=[]
+                gene_position_map[gene_name].append(position)
+
+    # remove 'partial' genes that have < 10bp unmasked sites
+    for gene_name in list(sorted(gene_position_map.keys())):
+        if len(gene_position_map[gene_name]) < 10:
+            for position in gene_position_map[gene_name]:
+                position_gene_map[position] = 'repeat'
+            del gene_position_map[gene_name]
+
+    # count up number of synonymous opportunities
+    effective_gene_synonymous_sites = {}
+    effective_gene_nonsynonymous_sites = {}
+
+    substitution_specific_synonymous_sites = {substitution: 0 for substitution in substitutions}
+    substitution_specific_nonsynonymous_sites = {substitution: 0 for substitution in substitutions}
+
+    for gene_name, start, end, gene_sequence, strand in zip(gene_names, gene_start_positions, gene_end_positions, gene_sequences, strands):
+
+        if gene_name not in gene_position_map:
+            continue
+
+        if strand=='forward':
+            oriented_gene_sequence = gene_sequence
+        else:
+            oriented_gene_sequence = calculate_reverse_complement_sequence(gene_sequence)
+
+        for position in gene_position_map[gene_name]:
+
+            if gene_name not in effective_gene_synonymous_sites:
+                effective_gene_synonymous_sites[gene_name]=0
+                effective_gene_nonsynonymous_sites[gene_name]=0
+
+            if 'CDS' not in gene_feature_map[gene_name]:
+                continue
+
+            else:
+                # calculate position in gene
+                if strand=='forward':
+                    position_in_gene = position-start
+                else:
+                    position_in_gene = end-position
+
+                # calculate codon start
+                codon_start = int(position_in_gene/3)*3
+                if codon_start+3 > len(gene_sequence):
+                    continue
+
+                #codon = gene_sequence[codon_start:codon_start+3]
+                codon = oriented_gene_sequence[codon_start:codon_start+3]
+                if any(codon_i in codon for codon_i in bases_to_skip):
+                    continue
+                position_in_codon = position_in_gene%3
+
+                effective_gene_synonymous_sites[gene_name] += codon_synonymous_opportunity_table[codon][position_in_codon]/3.0
+                effective_gene_nonsynonymous_sites[gene_name] += 1-codon_synonymous_opportunity_table[codon][position_in_codon]/3.0
+
+                for substitution in codon_synonymous_substitution_table[codon][position_in_codon]:
+                    substitution_specific_synonymous_sites[substitution] += 1
+
+                for substitution in codon_nonsynonymous_substitution_table[codon][position_in_codon]:
+                    substitution_specific_nonsynonymous_sites[substitution] += 1
+
+    substitution_specific_synonymous_fraction = {substitution: substitution_specific_synonymous_sites[substitution]*1.0/(substitution_specific_synonymous_sites[substitution]+substitution_specific_nonsynonymous_sites[substitution]) for substitution in substitution_specific_synonymous_sites.keys()}
+    # then annotate promoter regions at remaining sites
+    for gene_name,start,end in zip(gene_names,promoter_start_positions,promoter_end_positions):
+        for position in range(start,end+1):
+            if position not in position_gene_map:
+                # position hasn't been annotated yet
+
+                if gene_name not in gene_position_map:
+                    # the gene itself has not been annotated
+                    # so don't annotate the promoter
+                    continue
+                else:
+                    position_gene_map[position] = gene_name
+                    gene_position_map[gene_name].append(position)
+
+    # calculate effective gene lengths
+    effective_gene_lengths = {gene_name: len(gene_position_map[gene_name])-effective_gene_synonymous_sites[gene_name] for gene_name in gene_position_map.keys()}
+    effective_gene_lengths['synonymous'] = sum([effective_gene_synonymous_sites[gene_name] for gene_name in gene_position_map.keys()])
+    effective_gene_lengths['nonsynonymous'] = sum([effective_gene_nonsynonymous_sites[gene_name] for gene_name in gene_position_map.keys()])
+    effective_gene_lengths['noncoding'] = pt.get_genome_size(taxon=taxon)-effective_gene_lengths['synonymous']-effective_gene_lengths['nonsynonymous']
+
+
+    #effective_gene_lengths['synonymous']
+    #effective_gene_lengths['nonsynonymous']
+    Lsyn_spore = 0
+    Lnon_spore = 0
+
+    for spore_locus_tag in spore_locus_tags:
+
+        if spore_locus_tag in effective_gene_synonymous_sites:
+
+            Lsyn_spore += effective_gene_synonymous_sites[spore_locus_tag]
+            Lnon_spore += effective_gene_lengths[spore_locus_tag]
+
+
+    return Lsyn_spore, Lnon_spore
+
+
+    #return position_gene_map, effective_gene_lengths, substitution_specific_synonymous_fraction
+
+
+
+
 def calculate_synonymous_nonsynonymous_target_sizes(taxon):
     position_gene_map, effective_gene_lengths, substitution_specific_synonymous_fraction  = create_annotation_map(taxon=taxon)
     return effective_gene_lengths['synonymous'], effective_gene_lengths['nonsynonymous'], substitution_specific_synonymous_fraction
@@ -465,6 +591,35 @@ def create_gene_size_map(taxon, effective_gene_lengths=None):
 
     return gene_size_map
 
+
+
+
+def get_spore_locus_tags():
+
+    filename= pt.get_path() + '/' + pt.get_ref_gbff_dict('B')
+    gene_features = ['CDS', 'tRNA', 'rRNA', 'ncRNA', 'tmRNA']
+    recs = [rec for rec in SeqIO.parse(filename, "genbank")]
+    spore_locus_tags = []
+    for rec in recs:
+
+        for feat in rec.features:
+            if 'pseudo' in list((feat.qualifiers.keys())):
+                continue
+            if (feat.type == "source") or (feat.type == "gene"):
+                continue
+
+            if 'protein_id' not in feat.qualifiers:
+                continue
+
+
+            locus_tag = feat.qualifiers['locus_tag'][0]
+
+            note =  feat.qualifiers['product'][0]
+
+            if ('spore' in note) or ('sporu' in note) or (' spo' in note):
+                spore_locus_tags.append(locus_tag)
+
+    return spore_locus_tags
 
 
 

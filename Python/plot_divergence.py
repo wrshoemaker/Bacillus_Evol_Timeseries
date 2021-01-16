@@ -40,6 +40,8 @@ significant_multiplicity_dict = {}
 significant_n_mut_dict = {}
 gene_size_dict = {}
 gene_mean_size_dict = {}
+
+
 for taxon in pt.taxa:
     significant_multiplicity_dict[taxon] = {}
     significant_n_mut_dict[taxon] = {}
@@ -83,13 +85,16 @@ for taxon in pt.taxa:
 
 
 
+
+
+
 def calculate_divergence_correlations_between_taxa():
 
     sys.stdout.write("Starting divergence tests...\n")
 
     output_file = open(pt.get_path() + "/data/divergent_genes_between_taxa.txt", "w")
     # print header
-    output_file.write(", ".join(["Transfer regime", "Taxon", "Locus tag", "RefSeq protein ID", "Gene", "|Delta relative mult|", "P, BH corrected"]))
+    output_file.write(", ".join(["Transfer regime", "Taxon", "Locus tag", "RefSeq protein ID", "Gene", "|Delta relative mult|", "P BH corrected"]))
 
     divergence_dict = {}
     all_p_value_corr = []
@@ -209,17 +214,12 @@ def calculate_divergence_correlations_between_taxa():
 
         sys.stdout.write("%d-day, WT vs. spo0A: rho=%f, P=%f, Z=%f\n" % (10**int(treatment), pearsons_corr, P_corr, Z_corr))
 
-
-
     reject_corr, pvals_corrected_corr, alphacSidak_corr, alphacBonf_corr = multitest.multipletests(all_p_value_corr, alpha=0.05, method='fdr_bh')
     reject_corr_squared, pvals_corrected_corr_squared, alphacSidak_corr_squared, alphacBonf_corr_squared = multitest.multipletests(all_p_value_corr_squared, alpha=0.05, method='fdr_bh')
     for treatment_idx, treatment in enumerate(pt.treatments):
 
         divergence_dict[treatment]['P_value_corr_bh'] = pvals_corrected_corr[treatment_idx]
         divergence_dict[treatment]['P_value_corr_squared_bh'] = pvals_corrected_corr_squared[treatment_idx]
-
-
-
 
     sys.stdout.write("Dumping pickle......\n")
 
@@ -427,11 +427,7 @@ for taxon in pt.taxa:
         if divergence_dict_between_treatments[tuple(treatment_pair)][taxon]['P_value_corr_bh'] < 0.05:
             ax_between_treatments.text(count, Z_corr+0.9, '*', ha='center', fontweight='bold', fontsize=20)
 
-
-
         count+=1
-
-
 
 
 

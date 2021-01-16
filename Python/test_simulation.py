@@ -309,7 +309,7 @@ def parse_simulation_output(sampled_timepoints):
 
 
 #parse_simulation_output()
-M_list = numpy.logspace(1, 8, num=20, base=10.0)
+M_list = numpy.logspace(1, 6, num=20, base=10.0)
 #M_list = [10, 1000, 10000]
 c_list = [0.00001]
 
