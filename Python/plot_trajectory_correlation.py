@@ -18,9 +18,6 @@ import phylo_tools as pt
 import scipy.stats as stats
 
 
-#from sklearn.metrics import pairwise_distances
-#from skbio.stats.ordination import pcoa
-
 import parse_file
 import timecourse_utils
 import mutation_spectrum_utils
@@ -154,6 +151,26 @@ def run_analyses():
             r2s_obs_dict[treatment][taxon]['ratio_f'] = ratio_f_all
             r2s_obs_dict[treatment][taxon]['abs_delta_f'] = abs_delta_f_all
 
+
+    for taxon in pt.taxa:
+
+        for treatment in pt.treatments:
+
+            convergence_matrix = parse_file.parse_convergence_matrix(pt.get_path() + '/data/timecourse_final/' +("%s_convergence_matrix.txt" % (treatment+taxon)))
+
+            f_max_all = []
+            #for population in populations:
+            for replicate in pt.replicates:
+                population = treatment + taxon + replicate
+                for gene_name in sorted(convergence_matrix.keys()):
+
+                    for t,L,f,f_max in convergence_matrix[gene_name]['mutations'][population]:
+
+                        f_max_all.append(f_max)
+
+            #fmax_dict[treatment][taxon] =  np.asarray(f_max_all)
+            r2s_obs_dict[treatment][taxon]['f_max'] = np.asarray(f_max_all)
+
     with open(pt.get_path() + '/data/mutation_dynamics.pickle', 'wb') as handle:
         pickle.dump(r2s_obs_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -164,12 +181,13 @@ with open(pt.get_path() + '/data/mutation_dynamics.pickle', 'rb') as handle:
     r2s_obs_dict = pickle.load(handle)
 
 
-analyses = ['abs_delta_f', 'ratio_f', 'r2']
+analyses = ['f_max', 'abs_delta_f', 'ratio_f']
 # get KS distance
 ks_dict = {}
-p_value_list = []
+
 for analysis in analyses:
     ks_dict[analysis] = {}
+    p_value_list = []
     for treatment_idx, treatment in enumerate(pt.treatments):
 
         ks_dict[analysis][treatment] = {}
@@ -181,51 +199,66 @@ for analysis in analyses:
 
 
 
-reject, pvals_corrected, alphacSidak, alphacBonf = multitest.multipletests(p_value_list, alpha=0.05, method='fdr_bh')
-count_p_value = 0
-for analysis in analyses:
-    for treatment in pt.treatments:
-        ks_dict[analysis][treatment]['p_value_bh'] = pvals_corrected[count_p_value]
-
-        count_p_value+=1
+    reject, pvals_corrected, alphacSidak, alphacBonf = multitest.multipletests(p_value_list, alpha=0.05, method='fdr_bh')
+    for treatment_idx, treatment in enumerate(pt.treatments):
+        ks_dict[analysis][treatment]['p_value_bh'] = pvals_corrected[treatment_idx]
 
 
 
 
-fig = plt.figure(figsize = (10, 8))
-gs = gridspec.GridSpec(nrows=3, ncols=2)
+
+fig = plt.figure(figsize = (4, 8))
+gs = gridspec.GridSpec(nrows=3, ncols=1)
 
 row_count = 0
 
-ax_delta_f = fig.add_subplot(gs[0, 0])
-ax_ratio_f = fig.add_subplot(gs[1, 0])
-ax_r2 = fig.add_subplot(gs[2, 0])
-ax_delta_f.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_delta_f.transAxes)
-ax_ratio_f.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_ratio_f.transAxes)
-ax_r2.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_r2.transAxes)
+ax_f_max = fig.add_subplot(gs[0, 0])
+ax_delta_f = fig.add_subplot(gs[1, 0])
+ax_ratio_f = fig.add_subplot(gs[2, 0])
 
 
-axes = [ax_delta_f, ax_ratio_f, ax_r2]
+#ax_f_max.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_delta_f.transAxes)
+#ax_delta_f.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_ratio_f.transAxes)
+#ax_ratio_f.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_ratio_f.transAxes)
+
+
+axes = [ax_f_max, ax_delta_f, ax_ratio_f]
 
 label_latex_dict = {'abs_delta_f': r'$\frac{\left | \Delta f \right |}{\Delta \tau}$',
                     'ratio_f': r'$\frac{f(t+ \delta t)}{f(t)}$',
-                    'r2': r'$\rho^{2}_{M^{(i)}, M^{(j)} } $'}
+                    'r2': r'$\rho^{2}_{M^{(i)}, M^{(j)} } $',
+                    'f_max': r'$f_{max}$'}
 
 
 label_text_dict = {'abs_delta_f': 'Absolute change in allele frequencies\nper-generation',
                     'ratio_f': 'Ratio of allele frequency changes',
-                    'r2': 'Squared correlation between\nallele frequency trajectories'}
+                    'r2': 'Squared correlation between\nallele frequency trajectories',
+                    'f_max': 'Maximum observed allele frequency'}
 
 
 
-xlims = [[0.000001, 0.01], [0.3, 300], [0.08, 1.02]]
-ylims = [[0.0005, 1.1], [0.0005, 1.1], [0.01, 1.1]]
-ylims_inset = [[-0.07, 0.87],[-0.05, 0.6],[-0.05, 0.6]]
+xlim_dict = {'abs_delta_f': [0.000001, 0.01],
+            'ratio_f': [0.3, 300],
+            'f_max': [ 0.09, 1.03 ]}
+
+
+ylim_dict = {'abs_delta_f': [0.0005, 1.1],
+            'ratio_f': [0.0005, 1.1],
+            'f_max': [ 0.0008, 1.03 ]}
+
+#xlims = [[0.000001, 0.01], [0.3, 300], [0.08, 1.02]]
+#ylims = [[0.0005, 1.1], [0.0005, 1.1], [0.01, 1.1]]
+#ylims_inset = [[-0.07, 0.87],[-0.05, 0.6],[-0.05, 0.6]]
+
+ylim_inset_dict = {'abs_delta_f': [-0.07, 0.87],
+            'ratio_f': [-0.05, 0.6],
+            'f_max': [-0.05, 0.6]}
+
 
 count = 0
 for analysis, analysis_ax,  in zip(analyses, axes):
 
-    ins_ks = inset_axes(analysis_ax, width="100%", height="100%", loc='lower right', bbox_to_anchor=(0.12,0.07,0.4,0.38), bbox_transform=analysis_ax.transAxes)
+    ins_ks = inset_axes(analysis_ax, width="100%", height="100%", loc='lower right', bbox_to_anchor=(0.14,0.07,0.4,0.38), bbox_transform=analysis_ax.transAxes)
 
     for treatment_idx, treatment in enumerate(pt.treatments):
         for taxon in pt.taxa:
@@ -252,7 +285,9 @@ for analysis, analysis_ax,  in zip(analyses, axes):
     ins_ks.tick_params(axis='both', which='major', pad=1)
 
     ins_ks.set_xlim([-0.5, 2.5])
-    ins_ks.set_ylim(ylims_inset[count])
+    ins_ks.set_ylim(ylim_inset_dict[analysis])
+
+
 
     ins_ks.set_xticks([0, 1, 2])
     ins_ks.set_xticklabels(['1-day', '10-days', '100-days'],fontweight='bold' )
@@ -265,19 +300,16 @@ for analysis, analysis_ax,  in zip(analyses, axes):
 
     analysis_ax.set_xlabel('%s, %s' % (label_text_dict[analysis], label_latex_dict[analysis] ) , fontsize = 11)
     analysis_ax.set_yscale('log', base=10)
-    analysis_ax.set_xlim(xlims[count])
-    analysis_ax.set_ylim(ylims[count])
+    analysis_ax.set_xlim(xlim_dict[analysis])
+
+    analysis_ax.set_ylim(ylim_dict[analysis])
     analysis_ax.xaxis.set_tick_params(labelsize=8)
     analysis_ax.yaxis.set_tick_params(labelsize=8)
 
-    if count != 2:
-        analysis_ax.set_xscale('log', base=10)
+    #if count != 2:
+    analysis_ax.set_xscale('log', base=10)
 
-
-    if count == 2:
-        analysis_ax.set_ylabel('Fraction ' + r'$\geq \rho^{2} $', fontsize=11)
-    else:
-        analysis_ax.set_ylabel('Fraction ' + r'$\geq$' + label_latex_dict[analysis], fontsize=11)
+    analysis_ax.set_ylabel('Fraction ' + r'$\geq$' + label_latex_dict[analysis], fontsize=11)
 
 
     if count == 0:
@@ -293,7 +325,18 @@ for analysis, analysis_ax,  in zip(analyses, axes):
     count+=1
 
 
-fig_name = pt.get_path() + '/figs/r2_B_S.jpg'
+
+
+ax_list = [ax_f_max, ax_delta_f, ax_ratio_f]
+
+for ax_idx, ax in enumerate(ax_list):
+    ax.text(-0.1, 1.07, pt.sub_plot_labels[ax_idx], fontsize=8, fontweight='bold', ha='center', va='center', transform=ax.transAxes)
+
+
+
+
+
+fig_name = pt.get_path() + '/figs/trajectory_CDF_B_S.jpg'
 fig.subplots_adjust(hspace=0.45)
 fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
 plt.close()

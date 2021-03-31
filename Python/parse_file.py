@@ -80,6 +80,32 @@ for codon in codon_table.keys():
 
 
 
+def estimate_prob_extinction(population):
+
+    mutations, depth_tuple = parse_annotated_timecourse(population)
+    population_avg_depth_times, population_avg_depths, clone_avg_depth_times, clone_avg_depths = depth_tuple
+    state_times, state_trajectories = parse_well_mixed_state_timecourse(population)
+
+    n_extinct = 0
+    n = 0
+    for state_trajectory in state_trajectories:
+
+        final_state = state_trajectory[-1]
+        # dont count fixed mutations
+        if final_state == 2:
+            continue
+
+        n += 1
+        if state_trajectory[-1] == 1:
+            n_extinct += 1
+
+    return n_extinct/n
+
+
+
+
+
+
 def get_mutation_fixation_trajectories(population):
 
     mutations, depth_tuple = parse_annotated_timecourse(population)

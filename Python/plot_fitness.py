@@ -89,31 +89,83 @@ for i , item in enumerate(zipped_relative_time):
 
 
 
+# Jess got the day wrong, it's nine instead of 10
 
-fig = plt.figure(figsize = (10, 9))
+flask_1['Day'] = flask_1['Day'].replace(9, 10)
 
-ax_relative = plt.subplot2grid((2, 1), (0, 0), colspan=1)
-ax_time_relative = plt.subplot2grid((2, 1), (1, 0), colspan=1)
+
+
+
+
+fig = plt.figure(figsize = (4, 4))
+
+ax_relative_1_10_100 = plt.subplot2grid((1, 1), (0, 0), colspan=1)
+
+ax_relative_1_10_100.axhline(y=0, color='grey', linestyle='--', lw = 3, zorder=1)
+
+
+
+
+
+day_1_idx = np.where(flask_1['Day'].values == 1)[0][0]
+day_10_idx = np.where(flask_1['Day'].values == 10)[0][0]
+day_100_idx = np.where(flask_1['Day'].values == 100)[0][0]
+
+
+ax_relative_1_10_100.errorbar(0, relative_mean[day_1_idx], relative_se_list[day_1_idx], linestyle='-', marker='o', c='k', lw = 3, zorder=2)
+ax_relative_1_10_100.errorbar(1, relative_mean[day_10_idx], relative_se_list[day_10_idx], linestyle='-', marker='o', c='k', lw = 3, zorder=2)
+ax_relative_1_10_100.errorbar(2, relative_mean[day_100_idx], relative_se_list[day_100_idx], linestyle='-', marker='o', c='k', lw = 3, zorder=2)
+
+
+ax_relative_1_10_100.scatter(0, relative_mean[day_1_idx], s=120, marker=pt.plot_species_marker('B'), linewidth=2, facecolors=pt.get_scatter_facecolor('B', '0'), edgecolors=pt.get_colors('0'),  zorder=3)
+ax_relative_1_10_100.scatter(1, relative_mean[day_10_idx], s=120, marker=pt.plot_species_marker('B'), linewidth=2, facecolors=pt.get_scatter_facecolor('B', '1'), edgecolors=pt.get_colors('1'),  zorder=3)
+ax_relative_1_10_100.scatter(2, relative_mean[day_100_idx], s=120, marker=pt.plot_species_marker('B'), linewidth=2, facecolors=pt.get_scatter_facecolor('B', '2'), edgecolors=pt.get_colors('2'),  zorder=3)
+
+
+
+ax_relative_1_10_100.set_xticks([0,1,2])
+
+ax_relative_1_10_100.set_xticklabels(['1-day', '10-days', '100-days'])
+
+ax_relative_1_10_100.set_xlabel("Transfer time", fontsize = 16)
+ax_relative_1_10_100.set_ylabel("Relative fitness of\n" + r'$\Delta \mathit{spo0A}$' + ' after ' + r'$t$' + ' days' , fontsize = 14)
+
+
+ax_relative_1_10_100.set_xlim([-0.5,2.5])
+ax_relative_1_10_100.set_ylim([-4.1,4.1])
+
+# full temporal measurements
+
+fig_name = pt.get_path() + '/figs/fitness_spo0a_1_10_100.jpg'
+fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
+plt.close()
+
+
+fig = plt.figure(figsize = (10, 4))
+
+ax_relative = plt.subplot2grid((1, 1), (0, 0), colspan=1)
+#ax_time_relative = plt.subplot2grid((2, 1), (1, 0), colspan=1)
 
 ax_relative.axhline(y=0, color='grey', linestyle='--', lw = 3)
 ax_relative.errorbar(flask_1['Day'].values, relative_mean, relative_se_list, linestyle='-', marker='o', lw = 3)
 ax_relative.set_ylim(-5, 5)
 ax_relative.set_ylabel(pt.latex_dict['S'] + '\nrelative fitness at ' + r'$t$' + ', ' + r'$X(t)$'  , fontsize = 16)
 ax_relative.set_xscale('log', base=10)
+ax_relative.set_xlabel("Transfer time", fontsize = 16)
 
-ax_relative.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_relative.transAxes)
-
-
-ax_time_relative.axhline(y=0, color='grey', linestyle='--', lw = 3)
-ax_time_relative.errorbar(flask_1['Day'].values, relative_time_mean, relative_time_se_list, linestyle='-', marker='o', lw = 3)
-ax_time_relative.set_ylim(-0.35, 0.75)
-ax_time_relative.set_ylabel(pt.latex_dict['S'] + '\nrelative fitness, ' + r'$\Delta X$'  , fontsize = 16)
-ax_time_relative.set_xscale('log', base=10)
-
-ax_time_relative.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_time_relative.transAxes)
+#ax_relative.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_relative.transAxes)
 
 
-ax_time_relative.set_xlabel('Days, ' + r'$t$', fontsize = 20)
+#ax_time_relative.axhline(y=0, color='grey', linestyle='--', lw = 3)
+#ax_time_relative.errorbar(flask_1['Day'].values, relative_time_mean, relative_time_se_list, linestyle='-', marker='o', lw = 3)
+#ax_time_relative.set_ylim(-0.35, 0.75)
+#ax_time_relative.set_ylabel(pt.latex_dict['S'] + '\nrelative fitness, ' + r'$\Delta X$'  , fontsize = 16)
+#ax_time_relative.set_xscale('log', base=10)
+
+#ax_time_relative.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=10, fontweight='bold', ha='center', va='center', transform=ax_time_relative.transAxes)
+
+
+ax_relative.set_xlabel('Days, ' + r'$t$', fontsize = 20)
 
 fig_name = pt.get_path() + '/figs/fitness_spo0a.jpg'
 fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)

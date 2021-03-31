@@ -310,8 +310,10 @@ def parse_simulation_output(sampled_timepoints):
 
 #parse_simulation_output()
 M_list = numpy.logspace(1, 6, num=20, base=10.0)
+M_list = numpy.append(M_list, [1000, 100000])
 #M_list = [10, 1000, 10000]
-c_list = [0.00001]
+c = 0.00001
+c_list = [c]
 
 def run_all_simulations():
 
@@ -372,7 +374,7 @@ def run_all_simulations():
 
 
 
-run_all_simulations()
+#run_all_simulations()
 
 
 
@@ -380,7 +382,13 @@ def plot_():
     saved_data_file='%s/data/simulations/all_seedbank_sizes.dat' % (pt.get_path())
     sampled_timepoints = pickle.load( open(saved_data_file, "rb" ) )
 
-    metrics = ['delta_f', 'ratio_f', 'r2_f']
+    #print(sampled_timepoints[379][c].keys())
+
+    metrics = ['max_f', 'delta_f', 'ratio_f']
+
+    #m_for_sims = sampled_timepoints.keys()
+
+    m_for_sims = [10, 4281, 297635]
 
     fig = plt.figure(figsize = (10, 8))
     gs = gridspec.GridSpec(nrows=3, ncols=1)
@@ -392,19 +400,25 @@ def plot_():
         ax_i = fig.add_subplot(gs[metric_idx, 0])
         ax_i.set_yscale('log', base=10)
 
-        if metric_idx != 2:
-            ax_i.set_xscale('log', base=10)
+        #if metric_idx != 2:
+        ax_i.set_xscale('log', base=10)
 
-        for M_idx, M in enumerate(M_list):
+        #for M_idx, M in enumerate(M_list):
+        for M_idx, M in enumerate(m_for_sims):
 
-            f_max_array_sort = numpy.sort(sampled_timepoints[M][metric])
+            f_max_array_sort = numpy.sort(sampled_timepoints[M][c][metric])
 
             cdf = 1-numpy.arange(len(f_max_array_sort))/float(len(f_max_array_sort))
 
             ax_i.plot(f_max_array_sort, cdf, c ='k', ls=lines[M_idx], lw=3, alpha=0.8)
 
 
+
+
     fig_name = pt.get_path() + '/figs/simulation.jpg'
     fig.subplots_adjust(hspace=0.45)
     fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
     plt.close()
+
+
+plot_()
