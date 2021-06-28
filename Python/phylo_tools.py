@@ -1,7 +1,13 @@
 from __future__ import division
-import os
+import os, sys, json
 from collections import Counter
 import numpy as np
+
+import warnings
+warnings.simplefilter(action='ignore', category=Warning)
+import pandas as pd
+pd.reset_option('all')
+
 import colorsys
 
 import matplotlib.colors as clr
@@ -17,7 +23,15 @@ from scipy.linalg import block_diag
 from sklearn.metrics.pairwise import euclidean_distances
 
 import parse_file
-#import timecourse_util
+import timecourse_utils
+import mutation_spectrum_utils
+
+
+
+
+
+#from sklearn.metrics import pairwise_distances
+#from skbio.stats.ordination import pcoa
 
 
 np.random.seed(123456789)
@@ -801,3 +815,87 @@ class classFASTA:
         '''Returns fasa as nested list, containing line identifier \
             and sequence'''
         return fasta_list
+
+
+
+
+def get_fitness_dict():
+
+
+    # calculate fitness
+
+    df = pd.read_csv(get_path() + '/data/competition_2018-1-9-count.txt', sep = '\t')
+    rows_to_keep = []
+    for index, row in df.iterrows():
+        wt = row['WT']
+        spo0a = row['spoA']
+        if (wt == 'TMTC') or (spo0a == 'TMTC') :
+            continue
+        wt_spo0a = int(wt) + int(spo0a)
+        if (wt_spo0a < 30):
+            continue
+        rows_to_keep.append(index)
+
+
+    def cfus_ml(column, conc):
+        return column * (10 ** (int(conc) * -1))
+
+
+    df_keep = df.iloc[rows_to_keep]
+    df_keep.WT = df_keep.WT.astype(int)
+    df_keep.spoA = df_keep.spoA.astype(int)
+
+    df_keep['WT_cfus_ml'] = df_keep.apply(lambda x: cfus_ml(x.WT, x.Concentration), axis=1)
+    df_keep['spoA_cfus_ml'] = df_keep.apply(lambda x: cfus_ml(x.spoA, x.Concentration), axis=1)
+
+    df_keep = df_keep.drop(['Concentration', 'WT', 'spoA', 'Rep'], 1)
+    df_keep = df_keep.groupby(['Day','Flask'], as_index=False).mean()
+
+    flask_1 = df_keep.loc[df_keep['Flask'] == 1]
+    flask_2 = df_keep.loc[df_keep['Flask'] == 2]
+    flask_3 = df_keep.loc[df_keep['Flask'] == 3]
+
+    # mean initia CFU counts from notebook
+
+    relative_fitness_1 = np.log((flask_1['spoA_cfus_ml'].values / flask_1['WT_cfus_ml'].values) * ( 0.51/0.49))
+    relative_fitness_2 = np.log((flask_2['spoA_cfus_ml'].values / flask_2['WT_cfus_ml'].values) * ( 0.48/0.52))
+    relative_fitness_3 = np.log((flask_3['spoA_cfus_ml'].values / flask_3['WT_cfus_ml'].values) * ( 0.54/0.46))
+
+    relative_fitness_per_time_1 = np.log((flask_1['spoA_cfus_ml'].values / flask_1['WT_cfus_ml'].values) * ( 0.51/0.49)) /  flask_1['Day'].values
+    relative_fitness_per_time_2 = np.log((flask_2['spoA_cfus_ml'].values / flask_2['WT_cfus_ml'].values) * ( 0.48/0.52)) /  flask_2['Day'].values
+    relative_fitness_per_time_3 = np.log((flask_3['spoA_cfus_ml'].values / flask_3['WT_cfus_ml'].values) * ( 0.54/0.46)) /  flask_3['Day'].values
+
+
+    zipped_relative = list(zip(list(relative_fitness_1), list(relative_fitness_2), list(relative_fitness_3)))
+    relative_mean = (relative_fitness_1 + relative_fitness_2 + relative_fitness_3) / 3
+    relative_se_list = []
+    for i , item in enumerate(zipped_relative):
+        relative_se_list.append(2*np.std(np.asarray(item)) / np.sqrt(len(item)))
+
+    zipped_relative_time = list(zip(list(relative_fitness_per_time_1), list(relative_fitness_per_time_2), list(relative_fitness_per_time_3)))
+    relative_time_mean = (relative_fitness_per_time_1 + relative_fitness_per_time_2 + relative_fitness_per_time_3) / 3
+    relative_time_se_list = []
+    for i , item in enumerate(zipped_relative_time):
+        relative_time_se_list.append(2*np.std(np.asarray(item)) / np.sqrt(len(item)))
+
+    flask_1['Day'] = flask_1['Day'].replace(9, 10)
+
+    day_1_idx = np.where(flask_1['Day'].values == 1)[0][0]
+    day_10_idx = np.where(flask_1['Day'].values == 10)[0][0]
+    day_100_idx = np.where(flask_1['Day'].values == 100)[0][0]
+
+
+    fitness_dict = {}
+    fitness_dict['mean_fitness'] = {}
+    fitness_dict['se_fitness'] = {}
+
+    fitness_dict['mean_fitness']['0'] = relative_mean[day_1_idx]
+    fitness_dict['mean_fitness']['1'] = relative_mean[day_10_idx]
+    fitness_dict['mean_fitness']['2'] = relative_mean[day_100_idx]
+
+    fitness_dict['se_fitness']['0'] = relative_se_list[day_1_idx]
+    fitness_dict['se_fitness']['1'] = relative_se_list[day_10_idx]
+    fitness_dict['se_fitness']['2'] = relative_se_list[day_100_idx]
+
+
+    return fitness_dict

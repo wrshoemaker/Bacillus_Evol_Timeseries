@@ -1,0 +1,9 @@
+.DS_Store
+data/.DS_Store
+data/rebreseq_json/
+data/timecourse_indel/
+data/reference_assemblies_task2/
+data/timecourse_depth/
+data/timecourse_likelihood/
+data/timecourse_merged/
+data/timecourse_snp/

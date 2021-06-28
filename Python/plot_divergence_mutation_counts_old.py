@@ -22,8 +22,6 @@ import phik
 np.random.seed(123456789)
 
 
-treatments = pt.treatments
-
 # to-do: re-do analysis for enriched genes in *either* treatment you're comparing
 # read in nonsignificant genes and add those conts in..
 
@@ -84,6 +82,7 @@ for taxon in pt.taxa:
 
             significant_multiplicity_dict[taxon][items[0]][treatment] = float(items[-2])
             significant_n_mut_dict[taxon][items[0]][treatment] = float(items[-4])
+
 
 
 
@@ -390,25 +389,19 @@ with open(pt.get_path()+'/data/divergence_pearsons_between_treatments.pickle', '
     divergence_dict_between_treatments = pickle.load(handle)
 
 
-fitness_dict = pt.get_fitness_dict()
 
 
-
-
-gs = gridspec.GridSpec(nrows=2, ncols=2)
+gs = gridspec.GridSpec(nrows=2, ncols=1)
 
 fig = plt.figure(figsize = (10, 13))
-#ax_between_taxa = fig.add_subplot(gs[0, 0])
-#ax_between_treatments = fig.add_subplot(gs[1, 0])
+ax_between_taxa = fig.add_subplot(gs[0, 0])
+ax_between_treatments = fig.add_subplot(gs[1, 0])
 
-ax_between_treatments = fig.add_subplot(gs[0, 0:])
+ax_between_treatments = fig.add_subplot(gs[0, 0])
 ax_between_taxa = fig.add_subplot(gs[1, 0])
-ax_between_taxa_vs_fitness = fig.add_subplot(gs[1, 1])
 
-
-ax_between_treatments.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
-ax_between_taxa.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
-ax_between_taxa_vs_fitness.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa_vs_fitness.transAxes)
+ax_between_taxa.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+ax_between_treatments.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
 
 
 
@@ -425,40 +418,7 @@ for treatment_idx, treatment in enumerate(divergence_dict_between_taxa.keys()):
         linewidth=0.4,  alpha=1, fillstyle='left', zorder=2 , **marker_style)
 
     if divergence_dict_between_taxa[treatment]['P_value_mean_abs_diff_bh'] < 0.05:
-        ax_between_taxa.text(treatment, Z_corr+0.7, '*', ha='center', fontweight='bold', fontsize=18)
-
-    mean_fitness = fitness_dict['mean_fitness'][treatment]
-    se_fitness = fitness_dict['se_fitness'][treatment]
-
-    ax_between_taxa_vs_fitness.plot(Z_corr, mean_fitness, markersize = 20, marker = 'o',  \
-        linewidth=0.4,  alpha=1, fillstyle='left', zorder=2 , **marker_style)
-
-
-    #ax_between_taxa_vs_fitness.errorbar(Z_corr, mean_fitness, se_fitness, linestyle='-', marker='o', c=pt.get_colors(treatment), lw = 3, zorder=2)
-    ax_between_taxa_vs_fitness.errorbar(Z_corr, mean_fitness, se_fitness, linestyle='-', fmt='none', ecolor=pt.get_colors(treatment), lw = 3, zorder=2)
-
-
-    if treatment_idx == 2:
-        continue
-
-    # plot arrow
-    Z_corr_dt = divergence_dict_between_taxa[treatments[treatment_idx+1]]['Z_mean_abs_diff']
-    mean_fitness_dt = fitness_dict['mean_fitness'][treatments[treatment_idx+1]]
-
-    delta_Z = Z_corr_dt - Z_corr
-    delta_mean_fitness = mean_fitness_dt - mean_fitness
-
-
-    # looks like shit, fix it later
-
-
-    ax_between_taxa_vs_fitness.arrow(Z_corr, mean_fitness, delta_Z, delta_mean_fitness, head_width=0.5, head_length=0.7, lw=2, length_includes_head=True, fc='k', ec='k')
-
-
-
-
-
-
+        ax_between_taxa.text(treatment, Z_corr+0.7, '*', ha='center', fontweight='bold', fontsize=20)
 
 
 
@@ -477,17 +437,12 @@ ax_between_taxa.text(0.5, 0.10, 'Convergence', fontsize=15 , fontweight='bold', 
 ax_between_taxa.set_ylabel("Standardized mean absolute difference\nin mutation counts among genes, "+ r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$' , fontsize = 16)
 
 ax_between_taxa.set_xticks([0, 1, 2])
-ax_between_taxa.set_xticklabels(['1-day', '10-days', '100-days'], fontweight='bold', fontsize=14 )
+ax_between_taxa.set_xticklabels(['1-day', '10-days', '100-days'], fontweight='bold', fontsize=18 )
+
+
 
 ax_between_taxa.set_title("B. subtilis " + r'$\mathbf{WT}$' + " vs. "  + r'$\mathbf{\Delta spo0A}$', style='italic', fontsize=16, fontweight='bold')
 
-
-
-ax_between_taxa_vs_fitness.set_xlabel( r'$\mathrm{WT}$' + " vs. "  + r'$\mathrm{\Delta spo0A}$' + ' ' +  r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$', fontsize = 16)
-ax_between_taxa_vs_fitness.set_ylabel("Fitness of " + r'$\Delta \mathit{spo0A}$' + ' after ' + r'$t$' + ' days, ' + r'$X(t)$'  , fontsize = 16)
-ax_between_taxa_vs_fitness.set_xlim([1,12])
-ax_between_taxa_vs_fitness.axhline( y=0, color='k', lw=3, linestyle=':', alpha = 1, label='Neutrality', zorder=1)
-ax_between_taxa_vs_fitness.legend(loc='upper left', fontsize=11)
 
 
 
@@ -516,6 +471,9 @@ ax_between_treatments.set_xticks([0, 1, 2, 3, 4, 5])
 
 ax_between_treatments.set_xticklabels(['1-day vs.\n10-days', '1-day vs.\n100-days', '10-days vs.\n100-days', '1-day vs.\n10-days', '1-day vs.\n100-days', '10-days vs.\n100-days'], fontweight='bold', fontsize=13 )
 
+
+
+
 ax_between_treatments.axhline( y=0, color='k', lw=3, linestyle=':', alpha = 1, zorder=1)
 ax_between_treatments.axvline( x=2.5, color='k', lw=3, linestyle='-', alpha = 1, zorder=1)
 
@@ -534,8 +492,8 @@ ax_between_treatments.text(0.75, -0.155, "B. subtilis "  + r'$\mathbf{\Delta spo
 
 
 fig.subplots_adjust(hspace=0.3,wspace=0.2) #hspace=0.3, wspace=0.5
-fig_name = pt.get_path() + "/figs/divergence_mutation_counts.pdf"
-fig.savefig(fig_name, format='pdf', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
+fig_name = pt.get_path() + "/figs/divergence_mutation_counts.jpg"
+fig.savefig(fig_name, format='jpg', bbox_inches = "tight", pad_inches = 0.4, dpi = 600)
 plt.close()
 
 
