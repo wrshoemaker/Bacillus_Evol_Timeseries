@@ -411,6 +411,9 @@ ax_between_taxa.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight=
 ax_between_taxa_vs_fitness.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa_vs_fitness.transAxes)
 
 
+offset_dict = {'0': {'x_start':0.65 , 'y_start':0.3 , 'x_end': -0.6, 'y_end':-0.12},
+                '1': {'x_start':-0.25 , 'y_start':-0.5  , 'x_end': 0.4, 'y_end':0.4}}
+
 
 for treatment_idx, treatment in enumerate(divergence_dict_between_taxa.keys()):
 
@@ -450,9 +453,14 @@ for treatment_idx, treatment in enumerate(divergence_dict_between_taxa.keys()):
 
 
     # looks like shit, fix it later
+    prop = dict(arrowstyle="-|>, head_width=0.6,head_length=1.2",
+            shrinkA=0,shrinkB=0, facecolor='k', lw=3)
+
+    ax_between_taxa_vs_fitness.annotate("", xy=(Z_corr_dt+offset_dict[treatment]['x_end'], mean_fitness_dt+offset_dict[treatment]['y_end']), xytext=(Z_corr+offset_dict[treatment]['x_start'], mean_fitness+offset_dict[treatment]['y_start']), arrowprops=prop)
 
 
-    ax_between_taxa_vs_fitness.arrow(Z_corr, mean_fitness, delta_Z, delta_mean_fitness, head_width=0.5, head_length=0.7, lw=2, length_includes_head=True, fc='k', ec='k')
+
+    #ax_between_taxa_vs_fitness.arrow(Z_corr, mean_fitness, delta_Z, delta_mean_fitness, head_width=0.5, head_length=0.7, lw=2, length_includes_head=True, fc='k', ec='k')
 
 
 
