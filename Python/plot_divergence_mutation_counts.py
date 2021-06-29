@@ -1,6 +1,7 @@
 from __future__ import division
 import os, sys, pickle, random
 import numpy as np
+import pandas as pd
 
 import  matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -393,22 +394,101 @@ with open(pt.get_path()+'/data/divergence_pearsons_between_treatments.pickle', '
 fitness_dict = pt.get_fitness_dict()
 
 
+df = pd.read_csv(pt.get_path() + '/data/competition_2018-1-9-count.txt', sep = '\t')
+rows_to_keep = []
+for index, row in df.iterrows():
+    wt = row['WT']
+    spo0a = row['spoA']
+    if (wt == 'TMTC') or (spo0a == 'TMTC') :
+        continue
+    wt_spo0a = int(wt) + int(spo0a)
+    if (wt_spo0a < 30):
+        continue
+    rows_to_keep.append(index)
 
 
-gs = gridspec.GridSpec(nrows=2, ncols=2)
+def cfus_ml(column, conc):
+    return column * (10 ** (int(conc) * -1))
 
-fig = plt.figure(figsize = (10, 13))
+
+df_keep = df.iloc[rows_to_keep]
+df_keep.WT = df_keep.WT.astype(int)
+df_keep.spoA = df_keep.spoA.astype(int)
+
+df_keep['WT_cfus_ml'] = df_keep.apply(lambda x: cfus_ml(x.WT, x.Concentration), axis=1)
+df_keep['spoA_cfus_ml'] = df_keep.apply(lambda x: cfus_ml(x.spoA, x.Concentration), axis=1)
+
+df_keep = df_keep.drop(['Concentration', 'WT', 'spoA', 'Rep'], 1)
+df_keep = df_keep.groupby(['Day','Flask'], as_index=False).mean()
+
+flask_1 = df_keep.loc[df_keep['Flask'] == 1]
+flask_2 = df_keep.loc[df_keep['Flask'] == 2]
+flask_3 = df_keep.loc[df_keep['Flask'] == 3]
+
+# mean initia CFU counts from notebook
+
+relative_fitness_1 = np.log((flask_1['spoA_cfus_ml'].values / flask_1['WT_cfus_ml'].values) * ( 0.51/0.49))
+relative_fitness_2 = np.log((flask_2['spoA_cfus_ml'].values / flask_2['WT_cfus_ml'].values) * ( 0.48/0.52))
+relative_fitness_3 = np.log((flask_3['spoA_cfus_ml'].values / flask_3['WT_cfus_ml'].values) * ( 0.54/0.46))
+
+relative_fitness_per_time_1 = np.log((flask_1['spoA_cfus_ml'].values / flask_1['WT_cfus_ml'].values) * ( 0.51/0.49)) /  flask_1['Day'].values
+relative_fitness_per_time_2 = np.log((flask_2['spoA_cfus_ml'].values / flask_2['WT_cfus_ml'].values) * ( 0.48/0.52)) /  flask_2['Day'].values
+relative_fitness_per_time_3 = np.log((flask_3['spoA_cfus_ml'].values / flask_3['WT_cfus_ml'].values) * ( 0.54/0.46)) /  flask_3['Day'].values
+
+
+zipped_relative = list(zip(list(relative_fitness_1), list(relative_fitness_2), list(relative_fitness_3)))
+relative_mean = (relative_fitness_1 + relative_fitness_2 + relative_fitness_3) / 3
+relative_se_list = []
+for i , item in enumerate(zipped_relative):
+    relative_se_list.append(2*np.std(np.asarray(item)) / np.sqrt(len(item)))
+
+zipped_relative_time = list(zip(list(relative_fitness_per_time_1), list(relative_fitness_per_time_2), list(relative_fitness_per_time_3)))
+relative_time_mean = (relative_fitness_per_time_1 + relative_fitness_per_time_2 + relative_fitness_per_time_3) / 3
+relative_time_se_list = []
+for i , item in enumerate(zipped_relative_time):
+    relative_time_se_list.append(2*np.std(np.asarray(item)) / np.sqrt(len(item)))
+
+
+
+# Jess got the day wrong, it's nine instead of 10
+flask_1['Day'] = flask_1['Day'].replace(9, 10)
+
+
+
+gs = gridspec.GridSpec(nrows=3, ncols=2)
+
+fig = plt.figure(figsize = (10, 17))
 #ax_between_taxa = fig.add_subplot(gs[0, 0])
 #ax_between_treatments = fig.add_subplot(gs[1, 0])
 
 ax_between_treatments = fig.add_subplot(gs[0, 0:])
-ax_between_taxa = fig.add_subplot(gs[1, 0])
-ax_between_taxa_vs_fitness = fig.add_subplot(gs[1, 1])
+ax_fitness = fig.add_subplot(gs[1, 0:])
+ax_between_taxa = fig.add_subplot(gs[2, 0])
+ax_between_taxa_vs_fitness = fig.add_subplot(gs[2, 1])
 
 
-ax_between_treatments.text(-0.1, 1.07, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
-ax_between_taxa.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
-ax_between_taxa_vs_fitness.text(-0.1, 1.07, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa_vs_fitness.transAxes)
+# plot fitness
+ax_fitness.axhline(y=0, color='k', linestyle=':', lw = 3, label = 'Neutrality', zorder=1)
+ax_fitness.errorbar(flask_1['Day'].values, relative_mean, relative_se_list, linestyle='-', marker='o', c='k', lw = 3, zorder=3)
+ax_fitness.set_ylim(-5, 5)
+ax_fitness.set_ylabel('Relative fitness of ' + r'$\Delta spo0A$' +  ', ' + r'$X(t)$'  , fontsize = 14)
+ax_fitness.set_xscale('log', basex=10)
+
+ax_fitness.axvline(x=1, color=pt.colors_dict['0'], linestyle='--', lw = 3, label = '1-day', zorder=2)
+ax_fitness.axvline(x=10, color=pt.colors_dict['1'], linestyle='--', lw = 3, label = '10-days', zorder=2)
+ax_fitness.axvline(x=100, color=pt.colors_dict['2'], linestyle='--', lw = 3, label = '100-days', zorder=2)
+
+
+ax_fitness.legend(loc='lower left', fontsize=11)
+ax_fitness.set_xlabel('Days, ' + r'$t$', fontsize = 16)
+
+
+
+
+ax_between_treatments.text(-0.1, 1.1, pt.sub_plot_labels[0], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
+ax_fitness.text(-0.1, 1.07, pt.sub_plot_labels[1], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_fitness.transAxes)
+ax_between_taxa.text(-0.1, 1.09, pt.sub_plot_labels[2], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
+ax_between_taxa_vs_fitness.text(-0.1, 1.09, pt.sub_plot_labels[3], fontsize=12, fontweight='bold', ha='center', va='center', transform=ax_between_taxa_vs_fitness.transAxes)
 
 
 offset_dict = {'0': {'x_start':0.65 , 'y_start':0.3 , 'x_end': -0.6, 'y_end':-0.12},
@@ -482,7 +562,7 @@ ax_between_taxa.text(0.5, 0.19, 'Divergence', fontsize=15, fontweight='bold', ha
 ax_between_taxa.text(0.5, 0.10, 'Convergence', fontsize=15 , fontweight='bold', ha='center', va='center', transform=ax_between_taxa.transAxes)
 
 
-ax_between_taxa.set_ylabel("Standardized mean absolute difference\nin mutation counts among genes, "+ r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$' , fontsize = 16)
+ax_between_taxa.set_ylabel("Standardized mean difference\nin mutation counts among genes, "+ r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$' , fontsize = 15)
 
 ax_between_taxa.set_xticks([0, 1, 2])
 ax_between_taxa.set_xticklabels(['1-day', '10-days', '100-days'], fontweight='bold', fontsize=14 )
@@ -492,7 +572,10 @@ ax_between_taxa.set_title("B. subtilis " + r'$\mathbf{WT}$' + " vs. "  + r'$\mat
 
 
 ax_between_taxa_vs_fitness.set_xlabel( r'$\mathrm{WT}$' + " vs. "  + r'$\mathrm{\Delta spo0A}$' + ' ' +  r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$', fontsize = 16)
-ax_between_taxa_vs_fitness.set_ylabel("Fitness of " + r'$\Delta \mathit{spo0A}$' + ' after ' + r'$t$' + ' days, ' + r'$X(t)$'  , fontsize = 16)
+#ax_between_taxa_vs_fitness.set_ylabel("Fitness of " + r'$\Delta \mathit{spo0A}$' + ' after ' + r'$t$' + ' days, ' + r'$X(t)$'  , fontsize = 16)
+ax_between_taxa_vs_fitness.set_ylabel('Relative fitness of ' + r'$\Delta spo0A$' +  ', ' + r'$X(t)$' , fontsize = 16)
+
+
 ax_between_taxa_vs_fitness.set_xlim([1,12])
 ax_between_taxa_vs_fitness.axhline( y=0, color='k', lw=3, linestyle=':', alpha = 1, label='Neutrality', zorder=1)
 ax_between_taxa_vs_fitness.legend(loc='upper left', fontsize=11)
@@ -533,12 +616,12 @@ ax_between_treatments.set_xlim([-0.5,5.5])
 ax_between_treatments.set_ylim([-2.8,14])
 
 #ax_between_treatments.set_ylabel("Standardized correlation, "+ r'$Z_{\rho}$' , fontsize = 16)
-ax_between_treatments.set_ylabel("Standardized mean absolute difference\nin mutation counts among genes, "+ r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$' , fontsize = 16)
+ax_between_treatments.set_ylabel("Standardized mean difference\nin mutation counts among genes, "+ r'$Z_{\left \langle \Delta \mathcal{M} \right \rangle}$' , fontsize = 15)
 
 #\left \langle \Delta \mathcal{M} \right \rangle
 
-ax_between_treatments.text(0.25, -0.155, "B. subtilis " + r'$\mathbf{WT}$', style='italic', fontsize=16, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
-ax_between_treatments.text(0.75, -0.155, "B. subtilis "  + r'$\mathbf{\Delta spo0A}$', style='italic', fontsize=16, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
+ax_between_treatments.text(0.25, -0.195, "B. subtilis " + r'$\mathbf{WT}$', style='italic', fontsize=16, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
+ax_between_treatments.text(0.75, -0.195, "B. subtilis "  + r'$\mathbf{\Delta spo0A}$', style='italic', fontsize=16, fontweight='bold', ha='center', va='center', transform=ax_between_treatments.transAxes)
 
 
 fig.subplots_adjust(hspace=0.3,wspace=0.2) #hspace=0.3, wspace=0.5
